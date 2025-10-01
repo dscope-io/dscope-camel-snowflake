@@ -1,0 +1,12 @@
+- route:
+    id: snowflake-boot-route
+    from:
+      uri: timer:bootOnce?repeatCount=1&delay=0
+      steps:
+        - setHeader:
+            name: CamelSnowflakeQuery
+            constant: SELECT CURRENT_TIMESTAMP AS NOW
+        - to:
+            uri: snowflake://default
+        - log:
+            message: "Snowflake NOW=${body}"

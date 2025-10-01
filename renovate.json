@@ -1,0 +1,135 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":separateMultipleMajorReleases",
+    ":prHourlyLimitNone",
+    ":disableRateLimiting"
+  ],
+  "timezone": "Etc/UTC",
+  "rangeStrategy": "bump",
+  "stabilityDays": 2,
+  "labels": ["dependencies", "renovate"],
+  "dependencyDashboard": true,
+  "assignees": [],
+  "reviewers": [],
+  "prConcurrentLimit": 10,
+  "packageRules": [
+    {
+      "description": "Group all Apache Camel updates (core, components, Spring Boot starters)",
+      "matchManagers": ["maven"],
+      "matchPackagePatterns": [
+        "^org\\.apache\\.camel:.*",
+        "^org\\.apache\\.camel\\.springboot:.*"
+      ],
+      "groupName": "apache-camel",
+      "labels": ["dependencies", "camel"],
+      "stabilityDays": 2
+    },
+    {
+      "description": "Group JUnit updates (Jupiter, Platform, Vintage)",
+      "matchManagers": ["maven"],
+      "matchPackagePatterns": [
+        "^org\\.junit\\.jupiter:.*",
+        "^org\\.junit\\.platform:.*",
+        "^org\\.junit\\.vintage:.*",
+        "^junit:junit$"
+      ],
+      "groupName": "junit",
+      "labels": ["dependencies", "testing"],
+      "stabilityDays": 2
+    },
+    {
+      "description": "Group Maven test plugins (Surefire/Failsafe) and Surefire JUnit Platform",
+      "matchManagers": ["maven"],
+      "matchPackageNames": [
+        "org.apache.maven.plugins:maven-surefire-plugin",
+        "org.apache.maven.plugins:maven-failsafe-plugin",
+        "org.apache.maven.surefire:surefire-junit-platform"
+      ],
+      "groupName": "maven-test-plugins",
+      "labels": ["dependencies", "maven-plugins", "testing"],
+      "stabilityDays": 2
+    },
+    {
+      "description": "Group common Maven plugins (compiler, shade, assembly, javadoc, source, gpg, exec, felix bundle)",
+      "matchManagers": ["maven"],
+      "matchPackagePatterns": [
+        "^org\\.apache\\.maven\\.plugins:maven-.*-plugin$",
+        "^org\\.apache\\.felix:maven-bundle-plugin$"
+      ],
+      "excludePackageNames": [
+        "org.apache.maven.plugins:maven-surefire-plugin",
+        "org.apache.maven.plugins:maven-failsafe-plugin"
+      ],
+      "groupName": "maven-plugins",
+      "labels": ["dependencies", "maven-plugins"],
+      "stabilityDays": 2
+    },
+    {
+      "description": "Group Jackson updates",
+      "matchManagers": ["maven"],
+      "matchPackagePatterns": [
+        "^com\\.fasterxml\\.jackson:.*",
+        "^com\\.fasterxml\\.jackson\\.core:.*",
+        "^com\\.fasterxml\\.jackson\\.databind:.*",
+        "^com\\.fasterxml\\.jackson\\.dataformat:.*"
+      ],
+      "groupName": "jackson",
+      "labels": ["dependencies", "jackson"],
+      "stabilityDays": 2
+    },
+    {
+      "description": "Group HikariCP updates",
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["com.zaxxer:HikariCP"],
+      "groupName": "hikariCP",
+      "labels": ["dependencies", "hikari"],
+      "stabilityDays": 2
+    },
+    {
+      "description": "Group Testcontainers updates",
+      "matchManagers": ["maven"],
+      "matchPackagePatterns": [
+        "^org\\.testcontainers:.*"
+      ],
+      "groupName": "testcontainers",
+      "labels": ["dependencies", "testcontainers"],
+      "stabilityDays": 2
+    },
+    {
+      "description": "Group SLF4J updates",
+      "matchManagers": ["maven"],
+      "matchPackagePatterns": [
+        "^org\\.slf4j:.*"
+      ],
+      "groupName": "slf4j",
+      "labels": ["dependencies", "logging"],
+      "stabilityDays": 2
+    },
+    {
+      "description": "Group Snowflake JDBC updates",
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["net.snowflake:snowflake-jdbc"],
+      "groupName": "snowflake-jdbc",
+      "labels": ["dependencies", "snowflake"],
+      "stabilityDays": 2
+    },
+    {
+      "description": "Constrain Spring Boot parent to 3.5.x line for the sample app",
+      "matchManagers": ["maven"],
+      "matchDepTypes": ["parent"],
+      "matchPackageNames": ["org.springframework.boot:spring-boot-starter-parent"],
+      "allowedVersions": "3.5.x",
+      "groupName": "spring-boot-parent",
+      "labels": ["dependencies", "spring-boot"]
+    },
+    {
+      "description": "Do not propose snapshot or pre-release versions",
+      "matchManagers": ["maven"],
+      "matchUpdateTypes": ["minor", "patch", "major"],
+      "prCreation": "not-pending"
+    }
+  ]
+}

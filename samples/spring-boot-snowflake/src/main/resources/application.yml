@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: camel-snowflake-boot-sample
+
+camel:
+  springboot:
+    main-run-controller: true
+  main:
+    routes-include-pattern: classpath:routes/*.yaml
+  component:
+    snowflake:
+      account: ${snowflake.account:}
+      username: ${snowflake.username:}
+      database: ${snowflake.database:YOUR_DB}
+      schema: ${snowflake.schema:PUBLIC}
+      warehouse: ${snowflake.warehouse:COMPUTE_WH}
+      role: ${snowflake.role:ACCOUNTADMIN}
+      authenticator: ${snowflake.authenticator:snowflake_jwt}
+      privateKey: ${snowflake.privateKey:}
+      privateKeyFile: ${snowflake.privateKeyFile:}
+      outputFormat: ${snowflake.outputFormat:json}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

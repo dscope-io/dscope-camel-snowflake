@@ -1,0 +1,42 @@
+# Sample Camel YAML route demonstrating dynamic Snowflake queries with parameter binding.
+# Docs: see project README (component config) and samples/dynamic-query-yaml/README.md (run/setup, -Dsnowflake.* usage).
+#
+# How it works:
+# - Connection properties are injected from application.properties using {{...}} placeholders.
+# - The SQL query is set dynamically from the incoming Exchange header 'sql' if present,
+#   otherwise falls back to the value of the 'snowflake.query' property.
+# - Named parameters in the SQL (:#paramName) are bound from headers using the prefix defined
+#   by 'parameterPrefix' (default: 'snowflake.').
+#
+# Try it by sending an Exchange to 'direct:snowflakeQuery' with optional headers:
+#   - sql:            String SQL to execute (overrides default)
+#   - user_id:        Sample parameter value for :#user_id
+#   - min_date:       Sample parameter value for :#min_date
+#
+- route:
+    id: snowflake-dynamic-query
+    from:
+      uri: direct:snowflakeQuery
+      steps:
+        # 1) Choose the SQL to execute: prefer header 'sql', else default property 'snowflake.query'
+        - setHeader:
+            name: CamelSnowflakeQuery
+            simple: "${header.sql:-{{snowflake.query}}}"
+
+        # 2) Provide named parameters for binding (prefix 'snowflake.' by default)
+        - setHeader:
+            name: snowflake.user_id
+            simple: "${header.user_id:-{{snowflake.param.user_id:0}}}"
+        - setHeader:
+            name: snowflake.min_date
+            simple: "${header.min_date:-{{snowflake.param.min_date:1970-01-01}}}"
+
+        # 3) Execute on the Snowflake endpoint. Connection values are pulled from properties.
+        - to:
+            uri: "snowflake://default?account={{snowflake.account}}&database={{snowflake.database}}&schema={{snowflake.schema}}&warehouse={{snowflake.warehouse}}&role={{snowflake.role}}&authenticator={{snowflake.authenticator:snowflake_jwt}}&enableParameterBinding={{snowflake.enableParameterBinding:true}}&parameterPrefix={{snowflake.parameterPrefix:snowflake.}}&query={{snowflake.query}}&outputFormat={{snowflake.outputFormat:rows}}"
+
+        # 4) Log results
+        - log:
+            message: "Snowflake result: ${body}"
+
+# Note: No auto-triggering timer route here to avoid connecting until you explicitly send to direct:snowflakeQuery

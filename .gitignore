@@ -1,0 +1,22 @@
+# Environment-specific overrides (not tracked in version control)
+.env
+.env.local
+.env.*.local
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Maven
+target/
+*.log
+
+# Temporary files
+*.tmp
+*.swp
+*~
