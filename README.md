@@ -5,14 +5,14 @@
 [![Maven](https://img.shields.io/badge/Maven-3.9+-brightgreen.svg)](https://maven.apache.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-yellow.svg)](https://opensource.org/licenses/Apache-2.0)
 
-A comprehensive Apache Camel component for integrating with Snowflake Data Warehouse, featuring enterprise-grade connection pooling, comprehensive testing, and production-ready JDBC operations.
+A comprehensive Apache Camel component for integrating with Snowflake Data Warehouse, featuring enterprise-grade connection pooling, extensive tests, and production-ready JDBC operations.
 
 ## 🚀 Features
 
 - **Complete Camel Integration**: Full producer and consumer support
 - **Enterprise Connection Pooling**: HikariCP-based connection management
 - **Java 21 LTS**: Latest long-term support Java version with modern language features
-- **Comprehensive Testing**: 40+ unit and integration tests with 100% coverage
+- **Comprehensive Testing**: Extensive unit and integration tests
 - **Production Ready**: JDBC operations with transaction support and error handling
 - **JSON Support**: Built-in JSON data processing capabilities
 - **Auto-Discovery**: Automatic component registration with Apache Camel
@@ -24,7 +24,7 @@ A comprehensive Apache Camel component for integrating with Snowflake Data Wareh
 - Maven 3.9.1+
 - Snowflake account (for production use)
 
-## � Versions
+## 📦 Versions
 
 Current tested versions in this repository:
 
@@ -46,7 +46,7 @@ Current tested versions in this repository:
 - OSGi: packaged as a bundle (Felix Maven Bundle Plugin)
 - Spring Boot: sample app on Spring Boot 3.5.x using Camel Spring Boot
 
-## �🛠 Installation
+## 🛠 Installation
 
 ### Maven Dependency
 
@@ -61,7 +61,7 @@ Current tested versions in this repository:
 ### Build from Source
 
 ```bash
-git clone https://github.com/dscope/camel-snowflake.git
+git clone https://github.com/dscope-io/dscope-camel-snowflake.git
 cd camel-snowflake
 mvn clean install
 ```
@@ -104,7 +104,9 @@ Supported private key formats:
 - PKCS#1 (BEGIN RSA PRIVATE KEY) – automatically wrapped into PKCS#8
 - DER (binary) via `privateKeyFile`
 
-Note: Encrypted private keys are not supported by this component. Provide an unencrypted key or manage decryption externally.
+Encryption support:
+* Using `privateKeyFile`: Encrypted PEM keys are supported when you also set `privateKeyPassword`. Unencrypted PEM/DER is also supported.
+* Using `privateKey` (inline contents): Only unencrypted PKCS#8 or PKCS#1 is supported (decryption is not performed on inline contents). Use `privateKeyFile` + `privateKeyPassword` for encrypted keys.
 
 ##### Preparing a PKCS#8 Base64 Private Key
 
@@ -156,6 +158,7 @@ snowflake:endpointName?account=myaccount&database=mydb&schema=myschema[&options]
 | `jdbcUrl` | String | No | - | Custom JDBC URL override (for testing) |
 | `privateKey` | String | No | - | Private key contents for key-pair (JWT) auth. Accepts PKCS#8 or PKCS#1, PEM (with/without headers) or Base64. Mutually exclusive with `password`. |
 | `privateKeyFile` | String | No | - | Path to private key file (PEM or DER). Mutually exclusive with `password`. |
+| `privateKeyPassword` | String | No | - | Password for encrypted private key files. Only used with `privateKeyFile`; ignored when `privateKey` contents are provided. |
 | `authenticator` | String | No | `snowflake` | Authenticator. Supported: `snowflake`, `snowflake_jwt`, `externalbrowser`, `oauth`. Auto-set to `snowflake_jwt` when a private key is provided. |
 | `token` | String | No | - | OAuth bearer token (required when `authenticator=oauth`) |
 | `outputFormat` | String | No | `rows` | Serialization of exchange body: `rows` (List<Map<String,Object>>), `json` (string), or `xml` (string). Also controls driver result format via JDBC: `arrow` uses Apache Arrow; any other value uses JSON. |
@@ -266,6 +269,7 @@ The component automatically reads configuration from Java system properties usin
 java \
     -Dsnowflake.username=sample_user \
     -Dsnowflake.privateKeyFile=/abs/path/private_key_pkcs8.pem \
+    -Dsnowflake.privateKeyPassword=changeit \
     -jar your-app.jar
 ```
 
@@ -362,9 +366,7 @@ mvn clean test jacoco:report
 
 ### Test Coverage
 
-- **Lines Covered**: 95%+
-- **Branches Covered**: 90%+
-- **Classes Covered**: 100%
+The project includes a broad suite of unit and integration tests. Use your preferred coverage tooling (e.g., Jacoco) to generate reports locally.
 
 ## 🔒 Security
 
@@ -505,6 +507,7 @@ Notes:
 - Auth (password): `-Dsnowflake.password=...`
 - Auth (key-pair contents): `-Dsnowflake.privateKey="$(cat private_key_pkcs8.pem | tr '\n' '\\n')"`
 - Auth (key-pair file): `-Dsnowflake.privateKeyFile=/abs/path/private_key_pkcs8.pem`
+- Auth (key-pair file + encrypted PEM): `-Dsnowflake.privateKeyFile=/abs/path/encrypted_key.pem -Dsnowflake.privateKeyPassword=changeit`
 - Output: `-Dsnowflake.outputFormat=rows|json|xml|arrow`
 - Param binding: `-Dsnowflake.enableParameterBinding=true -Dsnowflake.parameterPrefix=snowflake.`
 - JDBC pass-through: `-Dsnowflake.jdbc.CLIENT_SESSION_KEEP_ALIVE=true`
@@ -603,8 +606,8 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 For support and questions:
 
-- Create an [Issue](https://github.com/dscope/camel-snowflake/issues)
-- Check the [Wiki](https://github.com/dscope/camel-snowflake/wiki)
+- Create an [Issue](https://github.com/dscope-io/dscope-camel-snowflake/issues)
+- Check the [Wiki](https://github.com/dscope-io/dscope-camel-snowflake/wiki)
 - Contact: [support@dscope.io](mailto:support@dscope.io)
 
 ---

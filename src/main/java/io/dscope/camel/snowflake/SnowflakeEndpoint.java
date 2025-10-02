@@ -72,6 +72,9 @@ public class SnowflakeEndpoint extends DefaultEndpoint {
     @UriParam(description = "Path to a PKCS#8 private key file (PEM or DER). Used if 'privateKey' is not provided.")
     private String privateKeyFile;
 
+    @UriParam(description = "Password for the private key file when using encrypted PKCS#8", secret = true)
+    private String privateKeyPassword;
+
     @UriParam(description = "Enable parameter binding for SQL queries (:#paramName syntax)", defaultValue = "true")
     private Boolean enableParameterBinding;
 
@@ -255,6 +258,17 @@ public class SnowflakeEndpoint extends DefaultEndpoint {
         this.privateKeyFile = privateKeyFile;
         if (configuration != null) {
             configuration.setPrivateKeyFile(privateKeyFile);
+        }
+    }
+
+    public String getPrivateKeyPassword() {
+        return privateKeyPassword;
+    }
+
+    public void setPrivateKeyPassword(String privateKeyPassword) {
+        this.privateKeyPassword = privateKeyPassword;
+        if (configuration != null) {
+            configuration.setPrivateKeyPassword(privateKeyPassword);
         }
     }
 

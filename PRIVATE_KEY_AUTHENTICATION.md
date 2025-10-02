@@ -7,8 +7,8 @@ Private key authentication has been successfully implemented and is now fully su
 ## Key Features Implemented
 
 ✅ **Private Key Configuration Support**
-- Added `privateKey` parameter to `SnowflakeConfiguration` and `SnowflakeEndpoint`
-- Environment variable support via `SNOWFLAKE_PRIVATE_KEY` in `.env` files
+- Added `privateKey` and `privateKeyFile` parameters to `SnowflakeConfiguration` and `SnowflakeEndpoint`
+- Environment variable support via `SNOWFLAKE_PRIVATE_KEY` (contents), `SNOWFLAKE_PRIVATE_KEY_FILE` (path), and `SNOWFLAKE_PRIVATE_KEY_PASSWORD` (file decryption) in `.env` files
 - Automatic private key detection and validation
 
 ✅ **Integration Mode Detection**
@@ -18,7 +18,8 @@ Private key authentication has been successfully implemented and is now fully su
 
 ✅ **JDBC Connection Manager**
 - Enhanced `SnowflakeJdbcConnectionManager` to handle private key authentication
-- Automatic Base64 decoding and PKCS#8 format parsing
+- Accepts PKCS#8 and PKCS#1 keys; PKCS#1 is automatically wrapped into PKCS#8
+- Supports PEM (with or without headers), Base64, and DER (via file)
 - Clear error messages for invalid private key formats
 - Prefers private key over password when both are available
 
@@ -62,10 +63,16 @@ SNOWFLAKE_PRIVATE_KEY=MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcw...
 
 ## How to Use Private Key Authentication
 
-1. **Generate/Obtain Private Key** (PKCS#8 format)
+1. **Generate/Obtain Private Key** (PKCS#8 format; PKCS#1 accepted and auto-wrapped)
 2. **Add to .env.local** (recommended for security):
    ```properties
    SNOWFLAKE_PRIVATE_KEY=MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcw...
+   ```
+   Or specify a file path instead:
+   ```properties
+   SNOWFLAKE_PRIVATE_KEY_FILE=/absolute/path/private_key_pkcs8.pem
+   # If the file is an encrypted PEM, also set:
+   SNOWFLAKE_PRIVATE_KEY_PASSWORD=changeit
    ```
 3. **Clear Password** (optional - private key takes precedence):
    ```properties
@@ -80,4 +87,8 @@ SNOWFLAKE_PRIVATE_KEY=MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcw...
 - **Validation**: Base64 decoding, ASN.1 header validation, Java KeyFactory parsing
 - **Error Messages**: Informative feedback for troubleshooting authentication issues
 
-The private key authentication is now fully implemented and ready for production use with real Snowflake private keys.
+The private key authentication is now fully implemented and ready for production use with real Snowflake private keys. When using inline `privateKey` contents, only unencrypted keys are supported; for encrypted PEM, provide a file path plus `privateKeyPassword`.
+
+## Related: OAuth Authentication
+
+If you prefer OAuth, set `authenticator=oauth` and supply a bearer `token` instead of password/private key. Token lifecycle (refresh/rotation) is managed externally by your IdP.

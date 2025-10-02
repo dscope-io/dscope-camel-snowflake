@@ -24,3 +24,6 @@
 
  - [x] Ensure Documentation is Complete
  	README.md, component docs, sample README, and additional guides updated; CHANGELOG includes Unreleased notes.
+
+- [x] Tidy Docs
+	Fixed README headings and links, removed unverifiable benchmark/coverage claims, added `privateKeyFile` and OAuth/system properties notes across docs.

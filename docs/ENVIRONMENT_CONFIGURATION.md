@@ -27,8 +27,11 @@ The following environment variables are supported:
 - `SNOWFLAKE_ROLE` - Role name
 
 ### Authentication
-- `SNOWFLAKE_PRIVATE_KEY` - Base64 encoded private key for key-pair authentication (optional)
+- `SNOWFLAKE_PRIVATE_KEY` - Private key contents for key-pair authentication (PKCS#8 or PKCS#1; PEM with/without headers or Base64)
+- `SNOWFLAKE_PRIVATE_KEY_FILE` - Absolute path to private key file (PEM or DER)
+- `SNOWFLAKE_PRIVATE_KEY_PASSWORD` - Password for encrypted private key files (used when `SNOWFLAKE_PRIVATE_KEY_FILE` points to an encrypted PEM)
 - `SNOWFLAKE_OAUTH_TOKEN` - OAuth access token (required when using `authenticator=oauth`)
+ - `SNOWFLAKE_AUTHENTICATOR` - Authenticator override (`snowflake`, `snowflake_jwt`, `externalbrowser`, `oauth`)
 
 ### Test Configuration
 - `SNOWFLAKE_TEST_TABLE` - Table name for test operations
@@ -43,15 +46,20 @@ The following environment variables are supported:
 
 ### Advanced
 - `SNOWFLAKE_JDBC_URL` - Complete JDBC URL (optional, will be constructed if not provided)
+ - `SNOWFLAKE_OUTPUT_FORMAT` - Controls component body and driver result format: `rows`, `json`, `xml`, `arrow`
+ - `SNOWFLAKE_ENABLE_PARAMETER_BINDING` - Enable/disable named parameter binding in SQL (default true)
+ - `SNOWFLAKE_PARAMETER_PREFIX` - Header prefix used to resolve bound parameters (default `snowflake.`)
+ - `SNOWFLAKE_JDBC_*` - Pass-through Snowflake JDBC parameters appended to the JDBC URL (e.g., `SNOWFLAKE_JDBC_CLIENT_SESSION_KEEP_ALIVE=true`)
 
 ## Loading Priority
 
 Configuration values are loaded in this order (highest priority first):
 
-1. **System Environment Variables** - Set via `export SNOWFLAKE_ACCOUNT=myaccount`
-2. **`.env.local`** - Local overrides file (gitignored)
-3. **`.env`** - Default configuration file (tracked in git)
-4. **Hardcoded defaults** - Fallback test values
+1. **Java System Properties** (`-Dsnowflake.*`, `-Dsnowflake.jdbc.*`) – preferred for runtime injection
+2. **System Environment Variables** - Set via `export SNOWFLAKE_ACCOUNT=myaccount`
+3. **`.env.local`** - Local overrides file (gitignored)
+4. **`.env`** - Default configuration file (tracked in git)
+5. **Hardcoded defaults** - Fallback test values
 
 ## Usage Examples
 

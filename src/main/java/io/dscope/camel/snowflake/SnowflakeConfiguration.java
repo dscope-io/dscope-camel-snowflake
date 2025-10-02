@@ -180,6 +180,9 @@ public class SnowflakeConfiguration {
     @UriParam(description = "Path to a PKCS#8 private key file (PEM or DER). Used if 'privateKey' is not provided.")
     private String privateKeyFile;
 
+    @UriParam(description = "Password for the private key file when using encrypted PKCS#8", secret = true)
+    private String privateKeyPassword;
+
     @UriParam(description = "Enable parameter binding for SQL queries (:#paramName syntax)", defaultValue = "true")
     private boolean enableParameterBinding = true;
 
@@ -231,6 +234,17 @@ public class SnowflakeConfiguration {
 
     public void setPrivateKeyFile(String privateKeyFile) {
         this.privateKeyFile = privateKeyFile;
+    }
+
+    public String getPrivateKeyPassword() {
+        if (notBlank(privateKeyPassword)) return privateKeyPassword;
+        String v = System.getProperty("snowflake.privateKeyPassword");
+        if (notBlank(v)) this.privateKeyPassword = v;
+        return privateKeyPassword;
+    }
+
+    public void setPrivateKeyPassword(String privateKeyPassword) {
+        this.privateKeyPassword = privateKeyPassword;
     }
 
     public boolean isEnableParameterBinding() {
@@ -340,7 +354,8 @@ public class SnowflakeConfiguration {
         c.operation = this.operation;
         c.jdbcUrl = this.jdbcUrl;
         c.privateKey = this.privateKey;
-    c.privateKeyFile = this.privateKeyFile;
+        c.privateKeyFile = this.privateKeyFile;
+            c.privateKeyPassword = this.privateKeyPassword;
         c.enableParameterBinding = this.enableParameterBinding;
         c.parameterPrefix = this.parameterPrefix;
         c.authenticator = this.authenticator;
@@ -363,7 +378,8 @@ public class SnowflakeConfiguration {
         if (notBlank(ep.getUsername())) setUsername(ep.getUsername());
         if (notBlank(ep.getPassword())) setPassword(ep.getPassword());
         if (notBlank(ep.getPrivateKey())) setPrivateKey(ep.getPrivateKey());
-    if (notBlank(ep.getPrivateKeyFile())) setPrivateKeyFile(ep.getPrivateKeyFile());
+        if (notBlank(ep.getPrivateKeyFile())) setPrivateKeyFile(ep.getPrivateKeyFile());
+            if (notBlank(ep.getPrivateKeyPassword())) setPrivateKeyPassword(ep.getPrivateKeyPassword());
         if (notBlank(ep.getDatabase())) setDatabase(ep.getDatabase());
         if (notBlank(ep.getSchema())) setSchema(ep.getSchema());
         if (notBlank(ep.getWarehouse())) setWarehouse(ep.getWarehouse());

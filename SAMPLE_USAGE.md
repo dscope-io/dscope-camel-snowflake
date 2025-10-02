@@ -7,7 +7,7 @@ Example dynamic query:
 SELECT
   detail
 FROM
-    SOME_TABLE
+    DEMO_TABLE
 WHERE USER_ID = :#user_id
 ```
 
@@ -24,7 +24,7 @@ from("direct:get-sample")
         + "&database=mydatabase" 
         + "&username=myuser"
         + "&password=mypassword"
-        + "&query=SELECT amount FROM SOME_TABLE WHERE USER_ID = :#user_id")
+        + "&query=SELECT amount FROM DEMO_TABLE WHERE USER_ID = :#user_id")
     .log("Retrieved rows: ${body}");
 ```
 
@@ -35,7 +35,7 @@ from("rest:get:/sample/{userId}")
     .to("snowflake://sample?"
         + "account=myaccount"
         + "&database=mydatabase"
-        + "&query=SELECT amount FROM SOME_TABLE WHERE USER_ID = :#user_id")
+        + "&query=SELECT amount FROM DEMO_TABLE WHERE USER_ID = :#user_id")
     .marshal().json();
 ```
 
@@ -46,7 +46,7 @@ from("jms:queue:sample-requests")
     .to("snowflake://sample?"
         + "account=myaccount"
         + "&database=mydatabase"
-        + "&query=SELECT amount FROM SOME_TABLE WHERE USER_ID = :#user_id")
+        + "&query=SELECT amount FROM DEMO_TABLE WHERE USER_ID = :#user_id")
     .to("jms:queue:sample-responses");
 ```
 

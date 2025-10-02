@@ -128,12 +128,14 @@ public class SnowflakeJdbcConnectionManager {
                 }
             } else if (config.getPrivateKeyFile() != null && !config.getPrivateKeyFile().isBlank()) {
                 try {
-                    // Prefer the driver's built-in loader for key files (supports encrypted/unencrypted PEM)
-                    ds.setPrivateKeyFile(config.getPrivateKeyFile(), null);
+            // Prefer the driver's built-in loader for key files (supports encrypted/unencrypted PEM)
+            String keyPassword = config.getPrivateKeyPassword();
+            String effectivePassword = (keyPassword != null && !keyPassword.isBlank()) ? keyPassword : null;
+            ds.setPrivateKeyFile(config.getPrivateKeyFile(), effectivePassword);
                     String effAuth = (config.getAuthenticator() == null || config.getAuthenticator().isBlank() || "snowflake".equalsIgnoreCase(config.getAuthenticator()))
                             ? "SNOWFLAKE_JWT" : config.getAuthenticator().toUpperCase();
                     ds.setAuthenticator(effAuth);
-                    LOG.info("Snowflake auth mode: KEY_PAIR (file), file={}, authenticator={}", config.getPrivateKeyFile(), effAuth);
+            LOG.info("Snowflake auth mode: KEY_PAIR (file), file={}, passwordSet={}, authenticator={}", config.getPrivateKeyFile(), effectivePassword != null, effAuth);
                 } catch (Exception e) {
                     throw new IllegalArgumentException("Failed to load private key from file '" + config.getPrivateKeyFile() + "': " + e.getMessage(), e);
                 }
