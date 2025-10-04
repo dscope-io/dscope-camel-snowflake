@@ -53,13 +53,23 @@ public class SnowflakeJdbcConnectionManager {
      * Get a DataSource for the given Snowflake configuration. Uses connection
      * pooling with HikariCP for optimal performance.
      */
-    public static DataSource getDataSource(SnowflakeConfiguration config) {
-        String key = generateKey(config);
-        return dataSources.computeIfAbsent(key, k -> {
-            LOG.debug("Creating new DataSource for key {}", k);
-            return createDataSource(config);
-        });
+public static DataSource getDataSource(SnowflakeConfiguration config) {
+    String key = generateKey(config);
+    HikariDataSource ds;
+
+    synchronized (dataSources) {
+        ds = dataSources.get(key);
+        if (ds == null) {
+            LOG.info("Creating new DataSource for key={}", key);
+            ds = createDataSource(config);
+            dataSources.put(key, ds);
+        } else {
+            LOG.debug("Reusing existing DataSource for key={}", key);
+        }
     }
+
+    return ds;
+}
 
     /**
      * Get a JDBC Connection for the given Snowflake configuration.
