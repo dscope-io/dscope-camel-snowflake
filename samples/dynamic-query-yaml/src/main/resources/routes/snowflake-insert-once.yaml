@@ -1,0 +1,26 @@
+# One-shot insert route (included in the sample) that performs a single
+# parameterized INSERT when the application starts. Adjust values or
+# remove for production use. To disable, delete this file. For property-based
+# gating move to a Java RouteBuilder and check Boolean.getBoolean("sample.enableOnce").
+
+- route:
+    id: snowflake-insert-once
+    from:
+      uri: timer:insertOnce?repeatCount=1
+      steps:
+        - setHeader:
+            name: snowflake.id
+            simple: 101
+        - setHeader:
+            name: snowflake.user_id
+            simple: 7
+        - setHeader:
+            name: snowflake.amount
+            simple: 42.50
+        - setHeader:
+            name: snowflake.details_json
+            constant: |-
+              {"status":"test","source":"dev"}
+        - log:
+            message: "Insert details_json header: ${header.snowflake.details_json}"
+        - to: direct:snowflakeInsert

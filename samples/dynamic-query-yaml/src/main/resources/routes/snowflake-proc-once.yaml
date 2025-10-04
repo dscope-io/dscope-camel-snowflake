@@ -1,0 +1,30 @@
+# One-shot stored procedure invocation route.
+# Calls the procedure defined in setup.sql: insert_new_sample_row(id, amount, details VARIANT)
+# Returns a STRING message. Adjust or remove for production.
+
+- route:
+    id: snowflake-proc-insert-once
+    from:
+      uri: timer:procOnce?repeatCount=1&delay=4000
+      steps:
+        # Provide parameters via headers (parameterPrefix = snowflake.)
+        - setHeader:
+            name: snowflake.user_id
+            simple: 101
+        - setHeader:
+            name: snowflake.amount
+            simple: 500.25
+        - setHeader:
+            name: snowflake.details_json
+            constant: |-
+              {"type":"order","status":"new"}
+        # Resolve SQL for procedure call: allow override via 'sql' header
+        - setHeader:
+            name: CamelSnowflakeQuery
+            simple: "${header.sql:-{{snowflake.proc.insertSample}}}"
+        - log:
+            message: "Proc route resolved CamelSnowflakeQuery='${header.CamelSnowflakeQuery}' (sql override='${header.sql}')"
+        - to:
+            uri: "snowflake://default?account={{snowflake.account}}&database={{snowflake.database}}&schema={{snowflake.schema}}&warehouse={{snowflake.warehouse}}&role={{snowflake.role}}&authenticator={{snowflake.authenticator:snowflake_jwt}}&enableParameterBinding={{snowflake.enableParameterBinding:true}}&parameterPrefix={{snowflake.parameterPrefix:snowflake.}}&query={{snowflake.proc.insertSample}}&outputFormat={{snowflake.outputFormat:json}}"
+        - log:
+            message: "Stored procedure result: ${body}"

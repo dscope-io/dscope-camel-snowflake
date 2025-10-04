@@ -73,11 +73,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- (placeholder)
+
+### Changed
+- (placeholder)
+
+### Fixed
+- (placeholder)
+
+### Documentation
+- (placeholder)
+
+## [1.0.0] - 2025-10-03
+
+### Added
 - `privateKeyFile` configuration for loading PKCS#8/PKCS#1 keys from PEM/DER files (PKCS#1 auto-wrapped into PKCS#8).
 - System property fallbacks for `snowflake.*` configuration and pass-through `snowflake.jdbc.*` parameters appended to the JDBC URL.
 - `outputFormat` also controls JDBC driver result format: JSON by default; Arrow when `arrow` is selected.
 - OAuth authentication (`authenticator=oauth`) with `token` property.
 - Safer DataSource property handling and explicit username validation in the connection manager.
+- Stored procedure invocation (`CALL ...`) with automatic detection, `CallableStatement` execution, and fallback to plain `Statement` on driver API limitation.
+- Parameter binding support for `CALL` statements identical to DML/SELECT (`:#param` → positional `?`).
+- Dynamic SQL resolution precedence (header `CamelSnowflakeQuery` > SQL-looking body > endpoint configured `query`).
+- One-shot sample routes (`snowflake-insert-once`, `snowflake-select-once`, `snowflake-proc-insert-once`) showcasing insert/select/procedure usage.
+- Developer convenience script `dev-install.sh` to install the component snapshot and rebuild an individual sample module quickly.
 
 ### Changed
 - Use typed `SnowflakeBasicDataSource` for key-pair authentication and set the `PrivateKey`/`privateKeyFile` directly (instead of relying on DriverManager string properties).
@@ -86,6 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Prevent Snowflake JDBC error "Connection property specified more than once: DB" by ensuring database/schema/warehouse/role are only included in the JDBC URL and not set again on the DataSource.
 - Clarified documentation around `snowflake.jdbc.*` pass-through: location properties (DB/SCHEMA/WAREHOUSE/ROLE) should not be duplicated.
+- Resolved stale shaded sample class issue by documenting fast rebuild script and recommending avoiding duplicate shaded classes in future.
 
 ### Documentation
 - Component README: expanded with private key formats, `privateKeyFile`, parameter binding controls, system properties, and JDBC pass-through examples.
@@ -93,3 +113,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sample README: `.env` opt-in (`-Dsample.useDotenv=true`), exec:java property passing (top-level `-D`), config cheat sheet, OAuth example, and Arrow notes.
 - Removed legacy domain-specific mentions in docs/tests for neutral sample naming.
 - Fixed README heading characters, trimmed unverifiable coverage/benchmark claims, and updated repository links to dscope-io/dscope-camel-snowflake.
+- Added sections on stored procedure (CALL) support, dynamic SQL precedence, one-shot sample routes, and dev-install fast iteration script.

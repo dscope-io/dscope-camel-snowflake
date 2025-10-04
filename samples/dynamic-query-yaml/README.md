@@ -6,7 +6,13 @@ Username and private key are intentionally not stored in `application.properties
 The sample defaults to JSON output for results (driver result format also defaults to JSON; set `-Dsnowflake.outputFormat=arrow` to opt into Arrow).
 
 ## What it does
-- Loads routes from `src/main/resources/routes/snowflake-dynamic.yaml`
+- Loads core routes from `src/main/resources/routes/snowflake-dynamic.yaml`
+  and `src/main/resources/routes/snowflake-insert.yaml`
+- Includes two sample one-shot timer routes:
+  - `snowflake-insert-once` (performs a single INSERT at startup)
+  - `snowflake-select-once` (selects rows after a small delay)
+  These live in separate YAML files (`snowflake-insert-once.yaml`, `snowflake-select-once.yaml` after renaming) and can be removed for production.
+- Adds an optional one-shot stored procedure route: `snowflake-proc-insert-once` (invokes `CALL insert_new_sample_row(...)`) demonstrating parameter binding with a stored procedure.
 - Uses `application.properties` for defaults and picks up System property overrides
 - Reads `.env` at startup (if enabled) and maps env vars to System properties (see EnvLoader). Enable with `-Dsample.useDotenv=true`.
 - Executes a query using named parameter binding with headers prefixed by `snowflake.` (e.g., `snowflake.user_id`)
@@ -17,6 +23,14 @@ The default query is:
 SELECT * FROM YOUR_DB.PUBLIC.SOME_TABLE WHERE USER_ID = :#user_id AND CREATED_AT >= :#min_date
 ```
 You can override the SQL per message via the `sql` header.
+
+### SQL Resolution Precedence (sample runtime)
+The sample (and component) determine which SQL to run using this order (highest wins):
+1. `sql` header (if present and non-empty)
+2. Message body if it appears to start with a SQL verb (`SELECT`, `WITH`, `INSERT`, `UPDATE`, `DELETE`, `CALL`, `CREATE`, `ALTER`, `MERGE`)
+3. Default query configured in `application.properties` (`snowflake.query.default` or route-level constant)
+
+This lets you keep a safe baseline query while overriding ad‑hoc without modifying the route files.
 
 ---
 
@@ -58,6 +72,12 @@ mvn -q -DskipTests install
 
 This places `io.dscope.camel:camel-snowflake:1.0.0-SNAPSHOT` into your local Maven repository so the sample can depend on it.
 
+For rapid iterations you can use the root helper script (creates fresh snapshot then builds this sample):
+```bash
+./dev-install.sh              # builds component + dynamic-query-yaml
+./dev-install.sh -U           # force snapshot & plugin updates
+```
+
 ---
 
 ## 2) Create the Snowflake objects and seed data
@@ -66,6 +86,7 @@ Run the script aligned with the sample’s default query:
 File: `samples/shared/snowflake/setup.sql`
 - Creates DB `YOUR_DB`, schema `PUBLIC`, table `SOME_TABLE`
 - Inserts several rows for `USER_ID` 1–3 with recent timestamps
+- (Also contains an example stored procedure `insert_new_sample_row` returning a message.)
 
 Options to run it:
 - Snowflake Web UI worksheet: open the script, adjust names if needed, run.
@@ -218,28 +239,7 @@ mvn -q -DskipTests \
 
 The route listens on `direct:snowflakeQuery`. To actually execute a query you need to send a message to that endpoint.
 
-### Option A: Quick dev trigger (one‑shot)
-Add the snippet below to `src/main/resources/routes/snowflake-dynamic.yaml` temporarily (dev only):
-```yaml
-- route:
-    id: snowflake-dev-once
-    from:
-      uri: timer:devOnce?repeatCount=1
-      steps:
-        - setHeader:
-            name: sql
-            simple: ${properties:snowflake.query}
-        - setHeader:
-            name: snowflake.user_id
-            simple: 1
-        - setHeader:
-            name: snowflake.min_date
-            simple: 2025-09-01
-        - to: direct:snowflakeQuery
-```
-Rebuild and rerun the shaded jar; it will run once and log the results.
-
-### Option B: Send from another route
+### Triggering queries from your own routes
 If you have another Camel route in your environment, produce to `direct:snowflakeQuery` and set these headers:
 - `sql` (optional): overrides the default query
 - `snowflake.user_id`: binds to `:#user_id`
@@ -256,8 +256,65 @@ If you have another Camel route in your environment, produce to `direct:snowflak
 
 ---
 
+## Insert route
+
+This sample also includes an insert route listening on `direct:snowflakeInsert`.
+
+- Default SQL (overridable via `sql` header):
+  `INSERT INTO PUBLIC.SOME_TABLE (ID, USER_ID, CREATED_AT, AMOUNT, DETAILS)
+   VALUES (:#id, :#user_id, to_timestamp_ntz(:#created_at), :#amount, parse_json(:#details))`
+- Provide values via headers (mapped using the `snowflake.` prefix):
+  - `id` → header `snowflake.id`
+  - `user_id` → header `snowflake.user_id`
+  - `created_at` → header `snowflake.created_at` (e.g., `2025-10-22 12:34:56`)
+  - `amount` → header `snowflake.amount` (e.g., `123.45`)
+  - `details` → header `snowflake.details` (JSON string, e.g., `{"status":"new"}`)
+
+Quick dev trigger snippet you can temporarily add to a route file during testing:
+```yaml
+- route:
+  id: snowflake-insert-dev-once
+The sample already includes ready-to-use one-shot routes:
+
+| File | Route ID | Purpose |
+|------|----------|---------|
+| `routes/snowflake-insert-once.yaml` | `snowflake-insert-once` | Performs a single parameterized INSERT at startup |
+| `routes/snowflake-select-once.yaml` | `snowflake-select-once` | Runs a one-time SELECT after a short delay (3s) |
+| `routes/snowflake-proc-once.yaml` | `snowflake-proc-insert-once` | Invokes stored procedure `insert_new_sample_row` demonstrating parameter binding |
+
+Disable them by deleting those files or (after migrating to Java DSL) guarding route creation with the `sample.enableOnce` system property (see `application.properties`).
+
+To produce inserts manually from another route instead of using the one-shot file, set these headers then send to `direct:snowflakeInsert`:
+`snowflake.id`, `snowflake.user_id`, `snowflake.amount`, `snowflake.details_json` (JSON string).
+
+---
+
+## Stored procedure route
+
+The one-shot stored procedure route (`snowflake-proc-insert-once`) calls:
+```
+CALL insert_new_sample_row(:#id,:#amount,:#details_json)
+```
+Headers provided:
+- `snowflake.id`
+- `snowflake.amount`
+- `snowflake.details_json` (JSON string)
+
+You can override the call by setting an `sql` header before execution. The default template comes from `application.properties`: `snowflake.proc.insertSample`.
+
+To invoke a procedure from another route interactively, you could add a `direct:snowflakeProc` route and set the same headers, then set `sql` to your `CALL ...` statement.
+
+Procedure binding notes:
+* Parameter header resolution follows: exact name (`id`) → prefixed (`snowflake.id`) → Camel style (`CamelSnowflakeId`).
+* All `:#name` placeholders in the CALL are converted to positional `?` parameters before execution.
+* The component first uses `CallableStatement`; if the Snowflake driver rejects the API for that procedure form, it falls back to a plain `Statement` transparently.
+
+---
+
 ## Files of interest
-- `src/main/resources/routes/snowflake-dynamic.yaml` — The YAML route
+- `src/main/resources/routes/snowflake-dynamic.yaml` — dynamic SELECT route
+- `src/main/resources/routes/snowflake-insert.yaml` — core INSERT route
+- `src/main/resources/routes/snowflake-proc-once.yaml` — stored procedure one-shot demo
 - `src/main/resources/application.properties` — Camel Main + sample defaults
 - `src/main/java/.../SampleMain.java` — Boots Camel Main and loads .env
 - `samples/shared/snowflake/setup.sql` — Creates DB/Schema/Table + seed data (shared across samples)

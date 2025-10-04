@@ -31,6 +31,7 @@ mvn -q -DskipTests package
   - Key‑pair authentication (private key) using `snowflake_jwt`
   - Loads non‑secret properties from `.env`, private key from OS environment
   - Shared setup SQL and helper scripts under `samples/shared`
+    - One-shot demo routes (insert/select/procedure) that run once at startup (`snowflake-insert-once`, `snowflake-select-once`, `snowflake-proc-insert-once`)
 - Quick start:
   ```bash
   cd samples/dynamic-query-yaml
@@ -105,3 +106,11 @@ Dependency on the component:
 ```
 
 If you’d like, we can convert `samples` into a Maven aggregator so all samples build with a single command (keeping them independent from the library release cycle).
+
+### Fast iterative rebuild
+From the repo root you can install the component and build a specific sample with:
+```bash
+./dev-install.sh                # builds component + dynamic-query-yaml
+./dev-install.sh dynamic-query-kotlin
+```
+Add `-U` to force snapshot/plugin updates.

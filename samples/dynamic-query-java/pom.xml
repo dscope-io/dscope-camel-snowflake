@@ -12,7 +12,10 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <camel.version>4.14.0</camel.version>
-        <snowflake.component.version>1.0.0-SNAPSHOT</snowflake.component.version>
+       <!-- Pin to the released component (1.0.0); root component is now on 1.1.0-SNAPSHOT.
+           This ensures the sample always exercises the installed immutable release
+           and avoids shaded class drift during component development. -->
+       <snowflake.component.version>1.0.0</snowflake.component.version>
         <snowflake.jdbc.version>3.26.1</snowflake.jdbc.version>
         <hikaricp.version>5.1.0</hikaricp.version>
         <jackson.version>2.17.2</jackson.version>
@@ -121,6 +124,16 @@
                         </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <!-- Exclude component classes so runtime uses external dependency and
+                                 never embeds stale copies inside the shaded jar. -->
+                            <filters>
+                                <filter>
+                                    <artifact>io.dscope.camel:camel-snowflake</artifact>
+                                    <excludes>
+                                        <exclude>**</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>io.dscope.camel.snowflake.sample.java.SampleMain</mainClass>

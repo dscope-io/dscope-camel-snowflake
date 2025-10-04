@@ -1,0 +1,16 @@
+# One-shot select route (included in the sample) that runs once on startup
+# to fetch rows for a demo user. Adjust or remove in production.
+# You can disable by removing this file; to gate via a property, migrate to Java DSL.
+
+- route:
+    id: snowflake-select-once
+    from:
+      uri: timer:selectOnce?repeatCount=1&delay=3000
+      steps:
+        - setHeader:
+            name: user_id
+            simple: 7
+        - setHeader:
+            name: min_date
+            simple: 1970-01-01
+        - to: direct:snowflakeQuery

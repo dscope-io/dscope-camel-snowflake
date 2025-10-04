@@ -1,0 +1,20 @@
+# Snowflake INSERT route using named parameter binding and JSON VARIANT handling.
+# Usage:
+#  - Send to direct:snowflakeInsert with required headers already using prefix 'snowflake.'
+#  - Optional header 'sql' overrides the default property (snowflake.insert.sql) or literal fallback.
+#  - Parameter binding uses prefix 'snowflake.' so :#id maps to header snowflake.id, etc.
+# Required headers (unless your SQL differs):
+#  - snowflake.id , snowflake.user_id , snowflake.amount , snowflake.details_json (valid JSON string)
+# Simplicity choice: we rely on the caller (dev route, REST, etc.) to set these directly; no remapping here.
+
+- route:
+    id: snowflake-insert
+    from:
+      uri: direct:snowflakeInsert
+      steps:
+        # Execute on the Snowflake endpoint; connection properties from application.properties
+        - to:
+            uri: "snowflake://default?account={{snowflake.account}}&database={{snowflake.database}}&schema={{snowflake.schema}}&warehouse={{snowflake.warehouse}}&role={{snowflake.role}}&authenticator={{snowflake.authenticator:snowflake_jwt}}&enableParameterBinding={{snowflake.enableParameterBinding:true}}&parameterPrefix={{snowflake.parameterPrefix:snowflake.}}&query={{snowflake.insert.sql}}&outputFormat={{snowflake.outputFormat:rows}}"
+
+        - log:
+            message: "Insert rows affected: ${header.CamelSnowflakeUpdateCount}"
