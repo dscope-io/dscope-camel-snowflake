@@ -16,13 +16,24 @@
  */
 package io.dscope.camel.snowflake.jdbc;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -143,11 +154,13 @@ public static DataSource getDataSource(SnowflakeConfiguration config) {
                     // Prefer the driver's built-in loader for key files (supports encrypted/unencrypted PEM)
                     String keyPassword = config.getPrivateKeyPassword();
                     String effectivePassword = (keyPassword != null && !keyPassword.isBlank()) ? keyPassword : null;
-                    ds.setPrivateKeyFile(config.getPrivateKeyFile(), effectivePassword);
+                    String resolvedFile = resolvePrivateKeyFile(config.getPrivateKeyFile());
+                    ds.setPrivateKeyFile(resolvedFile, effectivePassword);
                     String effAuth = (config.getAuthenticator() == null || config.getAuthenticator().isBlank() || "snowflake".equalsIgnoreCase(config.getAuthenticator()))
                             ? "SNOWFLAKE_JWT" : config.getAuthenticator().toUpperCase();
                     ds.setAuthenticator(effAuth);
-                    LOG.info("Snowflake auth mode: KEY_PAIR (file), file={}, passwordSet={}, authenticator={}", config.getPrivateKeyFile(), effectivePassword != null, effAuth);
+                    LOG.info("Snowflake auth mode: KEY_PAIR (file), file={}, resolved={}, passwordSet={}, authenticator={}",
+                            config.getPrivateKeyFile(), resolvedFile, effectivePassword != null, effAuth);
                 } catch (Exception e) {
                     throw new IllegalArgumentException("Failed to load private key from file '" + config.getPrivateKeyFile() + "': " + e.getMessage(), e);
                 }
@@ -191,6 +204,111 @@ public static DataSource getDataSource(SnowflakeConfiguration config) {
         return new HikariDataSource(hikariConfig);
     }
 
+    private static String resolvePrivateKeyFile(String location) throws Exception {
+        String original = location.trim();
+        if (original.isEmpty()) {
+            throw new IllegalArgumentException("Provided private key file path is blank");
+        }
+
+        // Support explicit URI-style prefixes
+        if (original.startsWith("classpath:")) {
+            String resourcePath = original.substring("classpath:".length());
+            return resolveClasspathResource(resourcePath, original);
+        }
+
+        if (original.startsWith("file:")) {
+            try {
+                Path p = Paths.get(new URI(original));
+                if (Files.exists(p)) {
+                    return p.toAbsolutePath().toString();
+                }
+                throw new IllegalArgumentException("Resolved file URI does not exist: " + p);
+            } catch (URISyntaxException e) {
+                throw new IllegalArgumentException("Invalid file URI for private key: " + original, e);
+            }
+        }
+
+        // Expand leading ~ to user home
+        if (original.startsWith("~" + System.getProperty("file.separator")) || original.equals("~")) {
+            String home = System.getProperty("user.home");
+            String suffix = original.equals("~") ? "" : original.substring(1);
+            Path candidate = Paths.get(home + suffix).toAbsolutePath().normalize();
+            if (Files.exists(candidate)) {
+                return candidate.toString();
+            }
+        }
+
+        Path rawPath = Paths.get(original);
+        if (rawPath.isAbsolute() && Files.exists(rawPath)) {
+            return rawPath.toAbsolutePath().toString();
+        }
+
+        List<Path> attempted = new ArrayList<>();
+
+        // Resolve relative to current working directory and its parents (common in multi-module builds)
+        Path cwd = Paths.get("").toAbsolutePath().normalize();
+        Path resolved = cwd.resolve(rawPath).normalize();
+        attempted.add(resolved);
+        if (Files.exists(resolved)) {
+            return resolved.toString();
+        }
+
+        Path parent = cwd.getParent();
+        while (parent != null) {
+            Path candidate = parent.resolve(rawPath).normalize();
+            attempted.add(candidate);
+            if (Files.exists(candidate)) {
+                return candidate.toString();
+            }
+            parent = parent.getParent();
+        }
+
+        // Try classpath resource with implicit lookup (no prefix)
+        URL resource = SnowflakeJdbcConnectionManager.class.getClassLoader().getResource(original);
+        if (resource != null) {
+            try {
+                return materializeResource(resource, original);
+            } catch (URISyntaxException | IOException e) {
+                throw new IllegalArgumentException("Unable to access private key resource '" + original + "'", e);
+            }
+        }
+
+        StringBuilder message = new StringBuilder("Private key file not found: '").append(original).append("'. Tried: ");
+        for (int i = 0; i < attempted.size(); i++) {
+            message.append(attempted.get(i));
+            if (i < attempted.size() - 1) {
+                message.append(", ");
+            }
+        }
+        throw new IllegalArgumentException(message.toString());
+    }
+
+    private static String resolveClasspathResource(String resourcePath, String original) {
+        URL resource = SnowflakeJdbcConnectionManager.class.getClassLoader().getResource(resourcePath);
+        if (resource == null) {
+            throw new IllegalArgumentException("Classpath resource not found for private key: " + original);
+        }
+        try {
+            return materializeResource(resource, original);
+        } catch (URISyntaxException | IOException e) {
+            throw new IllegalArgumentException("Unable to access private key resource '" + original + "'", e);
+        }
+    }
+
+    private static String materializeResource(URL resource, String original) throws URISyntaxException, IOException {
+        if ("file".equals(resource.getProtocol())) {
+            return Paths.get(resource.toURI()).toAbsolutePath().toString();
+        }
+        try (InputStream in = resource.openStream()) {
+            Path temp = Files.createTempFile("snowflake-key-", ".pem");
+            Files.copy(in, temp, StandardCopyOption.REPLACE_EXISTING);
+            temp.toFile().deleteOnExit();
+            return temp.toAbsolutePath().toString();
+        } catch (IOException io) {
+            throw new IllegalArgumentException("Unable to access private key resource '" + original + "'", io);
+        }
+    }
+
     private static void applyOptionalDataSourceProperties(SnowflakeBasicDataSource ds, Map<String, String> rawParams) {
         if (rawParams == null || rawParams.isEmpty()) {
             return;
@@ -210,11 +328,8 @@ public static DataSource getDataSource(SnowflakeConfiguration config) {
         java.util.function.BiConsumer<String, java.util.function.Consumer<String>> setIfPresentStr = (key, setter) -> {
             String v = get.apply(key);
             if (v != null && !v.isBlank()) {
-                try {
-                    setter.accept(v);
-                    LOG.debug("Applied DS string property {}={}", key, v);
-                } catch (Exception ignore) {
-                }
+                setter.accept(v);
+                LOG.debug("Applied DS string property {}={}", key, v);
             }
         };
         java.util.function.BiConsumer<String, java.util.function.IntConsumer> setIfPresentInt = (key, setter) -> {
@@ -223,18 +338,16 @@ public static DataSource getDataSource(SnowflakeConfiguration config) {
                 try {
                     setter.accept(Integer.parseInt(v));
                     LOG.debug("Applied DS int property {}={}", key, v);
-                } catch (Exception ignore) {
+                } catch (NumberFormatException nfe) {
+                    LOG.warn("Unable to parse integer value for {}: {}", key, v);
                 }
             }
         };
         java.util.function.BiConsumer<String, java.util.function.Consumer<Boolean>> setIfPresentBool = (key, setter) -> {
             String v = get.apply(key);
             if (v != null && !v.isBlank()) {
-                try {
-                    setter.accept(Boolean.parseBoolean(v));
-                    LOG.debug("Applied DS bool property {}={}", key, v);
-                } catch (Exception ignore) {
-                }
+                setter.accept(Boolean.valueOf(v));
+                LOG.debug("Applied DS bool property {}={}", key, v);
             }
         };
 
