@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package io.dscope.camel.snowflake.jdbc;
 
 import java.security.KeyFactory;
@@ -36,29 +35,32 @@ import org.slf4j.LoggerFactory;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import net.snowflake.client.jdbc.SnowflakeBasicDataSource;
 
 import io.dscope.camel.snowflake.SnowflakeConfiguration;
+import net.snowflake.client.jdbc.SnowflakeBasicDataSource;
 
 /**
- * JDBC Connection Manager for Snowflake connections.
- * Manages connection pooling using HikariCP for optimal performance.
+ * JDBC Connection Manager for Snowflake connections. Manages connection pooling
+ * using HikariCP for optimal performance.
  */
 public class SnowflakeJdbcConnectionManager {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(SnowflakeJdbcConnectionManager.class);
-    
+
     private static final ConcurrentMap<String, HikariDataSource> dataSources = new ConcurrentHashMap<>();
-    
+
     /**
-     * Get a DataSource for the given Snowflake configuration.
-     * Uses connection pooling with HikariCP for optimal performance.
+     * Get a DataSource for the given Snowflake configuration. Uses connection
+     * pooling with HikariCP for optimal performance.
      */
     public static DataSource getDataSource(SnowflakeConfiguration config) {
         String key = generateKey(config);
-        return dataSources.computeIfAbsent(key, k -> createDataSource(config));
+        return dataSources.computeIfAbsent(key, k -> {
+            LOG.debug("Creating new DataSource for key {}", k);
+            return createDataSource(config);
+        });
     }
-    
+
     /**
      * Get a JDBC Connection for the given Snowflake configuration.
      */
@@ -66,32 +68,32 @@ public class SnowflakeJdbcConnectionManager {
         DataSource dataSource = getDataSource(config);
         return dataSource.getConnection();
     }
-    
+
     /**
      * Create a new HikariCP DataSource for Snowflake or testing databases.
      */
     private static HikariDataSource createDataSource(SnowflakeConfiguration config) {
         String jdbcUrl = config.buildJdbcUrl();
         LOG.info("Creating new DataSource for JDBC URL: {}", jdbcUrl);
-        
-    HikariConfig hikariConfig = new HikariConfig();
-        
+
+        HikariConfig hikariConfig = new HikariConfig();
+
         // Check if this is a test database (H2) or Snowflake
         if (jdbcUrl.startsWith("jdbc:h2:")) {
             // H2 in-memory database for testing
             hikariConfig.setDriverClassName("org.h2.Driver");
             hikariConfig.setJdbcUrl(jdbcUrl);
             hikariConfig.setPassword(config.getPassword());
-            
+
             // Simple connection pool settings for testing
             hikariConfig.setMaximumPoolSize(5);
             hikariConfig.setMinimumIdle(1);
             hikariConfig.setConnectionTimeout(5000); // 5 seconds
             hikariConfig.setPoolName("H2TestPool");
-            
+
             // H2 connection validation
             hikariConfig.setConnectionTestQuery("SELECT 1");
-            
+
         } else {
             // Snowflake production database: construct typed DataSource directly to avoid reflection/type issues
             SnowflakeBasicDataSource ds = new SnowflakeBasicDataSource();
@@ -128,14 +130,14 @@ public class SnowflakeJdbcConnectionManager {
                 }
             } else if (config.getPrivateKeyFile() != null && !config.getPrivateKeyFile().isBlank()) {
                 try {
-            // Prefer the driver's built-in loader for key files (supports encrypted/unencrypted PEM)
-            String keyPassword = config.getPrivateKeyPassword();
-            String effectivePassword = (keyPassword != null && !keyPassword.isBlank()) ? keyPassword : null;
-            ds.setPrivateKeyFile(config.getPrivateKeyFile(), effectivePassword);
+                    // Prefer the driver's built-in loader for key files (supports encrypted/unencrypted PEM)
+                    String keyPassword = config.getPrivateKeyPassword();
+                    String effectivePassword = (keyPassword != null && !keyPassword.isBlank()) ? keyPassword : null;
+                    ds.setPrivateKeyFile(config.getPrivateKeyFile(), effectivePassword);
                     String effAuth = (config.getAuthenticator() == null || config.getAuthenticator().isBlank() || "snowflake".equalsIgnoreCase(config.getAuthenticator()))
                             ? "SNOWFLAKE_JWT" : config.getAuthenticator().toUpperCase();
                     ds.setAuthenticator(effAuth);
-            LOG.info("Snowflake auth mode: KEY_PAIR (file), file={}, passwordSet={}, authenticator={}", config.getPrivateKeyFile(), effectivePassword != null, effAuth);
+                    LOG.info("Snowflake auth mode: KEY_PAIR (file), file={}, passwordSet={}, authenticator={}", config.getPrivateKeyFile(), effectivePassword != null, effAuth);
                 } catch (Exception e) {
                     throw new IllegalArgumentException("Failed to load private key from file '" + config.getPrivateKeyFile() + "': " + e.getMessage(), e);
                 }
@@ -149,16 +151,14 @@ public class SnowflakeJdbcConnectionManager {
                 throw new IllegalArgumentException("Provide credentials for Snowflake authentication: private key, password, or oauth token with authenticator=oauth");
             }
 
-                // Important: database/schema/warehouse/role are already embedded in the JDBC URL built by configuration.
-                // Setting them again on the DataSource causes Snowflake driver to error with "Connection property specified more than once: DB".
-                // Therefore, do NOT set database/schema/warehouse/role on the DataSource here.
-
-                // Apply optional Snowflake JDBC parameters (snowflake.jdbc.*) via known DataSource setters when possible
-                applyOptionalDataSourceProperties(ds, config.getJdbcParameters());
+            // Important: database/schema/warehouse/role are already embedded in the JDBC URL built by configuration.
+            // Setting them again on the DataSource causes Snowflake driver to error with "Connection property specified more than once: DB".
+            // Therefore, do NOT set database/schema/warehouse/role on the DataSource here.
+            // Apply optional Snowflake JDBC parameters (snowflake.jdbc.*) via known DataSource setters when possible
+            applyOptionalDataSourceProperties(ds, config.getJdbcParameters());
 
             LOG.debug("Configured SnowflakeBasicDataSource with url={}, user={}, authenticator={} (expect SNOWFLAKE_JWT for key-pair)",
                     jdbcUrl, user, auth);
-
 
             // Hand the preconfigured DataSource to Hikari
             hikariConfig.setDataSource(ds);
@@ -177,72 +177,87 @@ public class SnowflakeJdbcConnectionManager {
             // Connection validation
             hikariConfig.setConnectionTestQuery("SELECT 1");
         }
-        
+
         return new HikariDataSource(hikariConfig);
     }
 
-        private static void applyOptionalDataSourceProperties(SnowflakeBasicDataSource ds, Map<String, String> rawParams) {
-            if (rawParams == null || rawParams.isEmpty()) return;
-            // Normalize keys to lowercase for case-insensitive lookup
-            Map<String, String> p = new HashMap<>();
-            for (Map.Entry<String, String> e : rawParams.entrySet()) {
-                if (e.getKey() == null) continue;
-                String k = e.getKey().toLowerCase(Locale.ROOT);
-                p.put(k, e.getValue());
+    private static void applyOptionalDataSourceProperties(SnowflakeBasicDataSource ds, Map<String, String> rawParams) {
+        if (rawParams == null || rawParams.isEmpty()) {
+            return;
+        }
+        // Normalize keys to lowercase for case-insensitive lookup
+        Map<String, String> p = new HashMap<>();
+        for (Map.Entry<String, String> e : rawParams.entrySet()) {
+            if (e.getKey() == null) {
+                continue;
             }
+            String k = e.getKey().toLowerCase(Locale.ROOT);
+            p.put(k, e.getValue());
+        }
 
-            // Simple helpers
-            java.util.function.Function<String, String> get = key -> p.get(key.toLowerCase(Locale.ROOT));
-            java.util.function.BiConsumer<String, java.util.function.Consumer<String>> setIfPresentStr = (key, setter) -> {
-                String v = get.apply(key);
-                if (v != null && !v.isBlank()) {
-                    try { setter.accept(v); LOG.debug("Applied DS string property {}={}", key, v); } catch (Exception ignore) { }
+        // Simple helpers
+        java.util.function.Function<String, String> get = key -> p.get(key.toLowerCase(Locale.ROOT));
+        java.util.function.BiConsumer<String, java.util.function.Consumer<String>> setIfPresentStr = (key, setter) -> {
+            String v = get.apply(key);
+            if (v != null && !v.isBlank()) {
+                try {
+                    setter.accept(v);
+                    LOG.debug("Applied DS string property {}={}", key, v);
+                } catch (Exception ignore) {
                 }
-            };
-            java.util.function.BiConsumer<String, java.util.function.IntConsumer> setIfPresentInt = (key, setter) -> {
-                String v = get.apply(key);
-                if (v != null && !v.isBlank()) {
-                    try { setter.accept(Integer.parseInt(v)); LOG.debug("Applied DS int property {}={}", key, v); } catch (Exception ignore) { }
+            }
+        };
+        java.util.function.BiConsumer<String, java.util.function.IntConsumer> setIfPresentInt = (key, setter) -> {
+            String v = get.apply(key);
+            if (v != null && !v.isBlank()) {
+                try {
+                    setter.accept(Integer.parseInt(v));
+                    LOG.debug("Applied DS int property {}={}", key, v);
+                } catch (Exception ignore) {
                 }
-            };
-            java.util.function.BiConsumer<String, java.util.function.Consumer<Boolean>> setIfPresentBool = (key, setter) -> {
-                String v = get.apply(key);
-                if (v != null && !v.isBlank()) {
-                    try { setter.accept(Boolean.parseBoolean(v)); LOG.debug("Applied DS bool property {}={}", key, v); } catch (Exception ignore) { }
+            }
+        };
+        java.util.function.BiConsumer<String, java.util.function.Consumer<Boolean>> setIfPresentBool = (key, setter) -> {
+            String v = get.apply(key);
+            if (v != null && !v.isBlank()) {
+                try {
+                    setter.accept(Boolean.parseBoolean(v));
+                    LOG.debug("Applied DS bool property {}={}", key, v);
+                } catch (Exception ignore) {
                 }
-            };
+            }
+        };
 
-            // Map commonly used optional properties
-            setIfPresentStr.accept("application", ds::setApplication);
-            setIfPresentStr.accept("clientconfigfile", ds::setClientConfigFile); // snowflake.jdbc.clientConfigFile
-            setIfPresentStr.accept("tracing", ds::setTracing);
+        // Map commonly used optional properties
+        setIfPresentStr.accept("application", ds::setApplication);
+        setIfPresentStr.accept("clientconfigfile", ds::setClientConfigFile); // snowflake.jdbc.clientConfigFile
+        setIfPresentStr.accept("tracing", ds::setTracing);
 
-            setIfPresentInt.accept("networktimeout", ds::setNetworkTimeout);
-            setIfPresentInt.accept("querytimeout", ds::setQueryTimeout);
+        setIfPresentInt.accept("networktimeout", ds::setNetworkTimeout);
+        setIfPresentInt.accept("querytimeout", ds::setQueryTimeout);
 
-            setIfPresentBool.accept("ssl", ds::setSsl);
-            setIfPresentBool.accept("ocspfailopen", ds::setOcspFailOpen);
+        setIfPresentBool.accept("ssl", ds::setSsl);
+        setIfPresentBool.accept("ocspfailopen", ds::setOcspFailOpen);
 
         // Do NOT propagate location properties (db/schema/warehouse/role) from snowflake.jdbc.* to DS
         // because they are already present in the JDBC URL constructed by configuration, and duplicating
         // them triggers Snowflake driver error: "Connection property specified more than once: DB".
-        }
+    }
 
     // Removed legacy addDsProp; we now configure a concrete SnowflakeBasicDataSource directly
-    
     /**
      * Generate a unique key for the DataSource cache.
      */
     private static String generateKey(SnowflakeConfiguration config) {
-        return String.format("%s:%s:%s:%s:%s", 
-            config.getAccount(),
-            config.getUsername(),
-            config.getDatabase(),
-            config.getSchema(),
-            config.getWarehouse()
+        return String.format("%s:%s:%s:%s:%s",
+                config.getAccount(),
+                config.getUsername(),
+                config.getDatabase(),
+                config.getSchema(),
+                config.getWarehouse()
         );
     }
-    
+
     /**
      * Close a specific DataSource and remove it from cache.
      */
@@ -254,17 +269,17 @@ public class SnowflakeJdbcConnectionManager {
             dataSource.close();
         }
     }
-    
+
     /**
-     * Close all DataSources and clear cache.
-     * Should be called during application shutdown.
+     * Close all DataSources and clear cache. Should be called during
+     * application shutdown.
      */
     public static void closeAllDataSources() {
         LOG.info("Closing all Snowflake DataSources");
         dataSources.values().forEach(HikariDataSource::close);
         dataSources.clear();
     }
-    
+
     /**
      * Get connection pool statistics for monitoring.
      */
@@ -273,20 +288,21 @@ public class SnowflakeJdbcConnectionManager {
         HikariDataSource dataSource = dataSources.get(key);
         if (dataSource != null) {
             return String.format(
-                "Pool Stats for %s: Active=%d, Idle=%d, Total=%d, Waiting=%d",
-                config.getAccount(),
-                dataSource.getHikariPoolMXBean().getActiveConnections(),
-                dataSource.getHikariPoolMXBean().getIdleConnections(),
-                dataSource.getHikariPoolMXBean().getTotalConnections(),
-                dataSource.getHikariPoolMXBean().getThreadsAwaitingConnection()
+                    "Pool Stats for %s: Active=%d, Idle=%d, Total=%d, Waiting=%d",
+                    config.getAccount(),
+                    dataSource.getHikariPoolMXBean().getActiveConnections(),
+                    dataSource.getHikariPoolMXBean().getIdleConnections(),
+                    dataSource.getHikariPoolMXBean().getTotalConnections(),
+                    dataSource.getHikariPoolMXBean().getThreadsAwaitingConnection()
             );
         }
         return "No DataSource found for configuration";
     }
 
     /**
-     * Load a PKCS#8 encoded RSA PrivateKey from a raw Base64 string (without header/footer lines).
-     * This is a convenience helper when the key is already known to be PKCS#8 DER encoded.
+     * Load a PKCS#8 encoded RSA PrivateKey from a raw Base64 string (without
+     * header/footer lines). This is a convenience helper when the key is
+     * already known to be PKCS#8 DER encoded.
      *
      * @param base64Key Base64 encoded PKCS#8 key contents (PEM body only)
      * @return Parsed {@link PrivateKey}
@@ -377,52 +393,52 @@ public class SnowflakeJdbcConnectionManager {
         }
     }
 
-    
-
     /**
-     * Wrap a PKCS#1 RSA private key DER blob into a PKCS#8 PrivateKeyInfo structure.
-     * This allows {@link KeyFactory} to read legacy "BEGIN RSA PRIVATE KEY" keys.
+     * Wrap a PKCS#1 RSA private key DER blob into a PKCS#8 PrivateKeyInfo
+     * structure. This allows {@link KeyFactory} to read legacy "BEGIN RSA
+     * PRIVATE KEY" keys.
      *
-     * PKCS#8 structure:
-     * PrivateKeyInfo ::= SEQUENCE {
-     *   version                   Version,  -- INTEGER 0
-     *   privateKeyAlgorithm       AlgorithmIdentifier, -- rsaEncryption + NULL
-     *   privateKey                OCTET STRING -- contains PKCS#1 key
-     * }
+     * PKCS#8 structure: PrivateKeyInfo ::= SEQUENCE { version Version, --
+     * INTEGER 0 privateKeyAlgorithm AlgorithmIdentifier, -- rsaEncryption +
+     * NULL privateKey OCTET STRING -- contains PKCS#1 key }
      */
     private static byte[] wrapPkcs1ToPkcs8(byte[] pkcs1Der) {
         // ASN.1 primitives we'll compose (all DER encoded)
-        byte[] version = new byte[] { 0x02, 0x01, 0x00 }; // INTEGER 0
+        byte[] version = new byte[]{0x02, 0x01, 0x00}; // INTEGER 0
 
         // AlgorithmIdentifier for rsaEncryption: SEQ(OID 1.2.840.113549.1.1.1, NULL)
-        byte[] algId = new byte[] {
-                0x30, 0x0D, // SEQUENCE, length 13
-                0x06, 0x09, // OID, length 9
-                0x2A, (byte) 0x86, 0x48, (byte) 0x86, (byte) 0xF7, 0x0D, 0x01, 0x01, 0x01, // 1.2.840.113549.1.1.1
-                0x05, 0x00  // NULL
+        byte[] algId = new byte[]{
+            0x30, 0x0D, // SEQUENCE, length 13
+            0x06, 0x09, // OID, length 9
+            0x2A, (byte) 0x86, 0x48, (byte) 0x86, (byte) 0xF7, 0x0D, 0x01, 0x01, 0x01, // 1.2.840.113549.1.1.1
+            0x05, 0x00 // NULL
         };
 
         // OCTET STRING containing the PKCS#1 DER
-        byte[] octetStringHeader = new byte[] { 0x04 }; // OCTET STRING tag
+        byte[] octetStringHeader = new byte[]{0x04}; // OCTET STRING tag
         byte[] octetLen = encodeDerLength(pkcs1Der.length);
 
         int seqContentLen = version.length + algId.length + 1 + octetLen.length + pkcs1Der.length;
-        byte[] seqHeader = new byte[] { 0x30 }; // SEQUENCE
+        byte[] seqHeader = new byte[]{0x30}; // SEQUENCE
         byte[] seqLen = encodeDerLength(seqContentLen);
 
         byte[] result = new byte[1 + seqLen.length + seqContentLen];
         int pos = 0;
         // Outer sequence
         result[pos++] = seqHeader[0];
-        System.arraycopy(seqLen, 0, result, pos, seqLen.length); pos += seqLen.length;
+        System.arraycopy(seqLen, 0, result, pos, seqLen.length);
+        pos += seqLen.length;
         // version
-        System.arraycopy(version, 0, result, pos, version.length); pos += version.length;
+        System.arraycopy(version, 0, result, pos, version.length);
+        pos += version.length;
         // algorithm identifier
-        System.arraycopy(algId, 0, result, pos, algId.length); pos += algId.length;
+        System.arraycopy(algId, 0, result, pos, algId.length);
+        pos += algId.length;
         // privateKey OCTET STRING
         result[pos++] = octetStringHeader[0];
-        System.arraycopy(octetLen, 0, result, pos, octetLen.length); pos += octetLen.length;
-    System.arraycopy(pkcs1Der, 0, result, pos, pkcs1Der.length);
+        System.arraycopy(octetLen, 0, result, pos, octetLen.length);
+        pos += octetLen.length;
+        System.arraycopy(pkcs1Der, 0, result, pos, pkcs1Der.length);
 
         return result;
     }
@@ -435,7 +451,7 @@ public class SnowflakeJdbcConnectionManager {
             throw new IllegalArgumentException("Negative length not supported");
         }
         if (length < 128) {
-            return new byte[] { (byte) length };
+            return new byte[]{(byte) length};
         }
         // Determine number of bytes needed
         int numBytes = 0;
