@@ -70,7 +70,7 @@ From the repository root:
 mvn -q -DskipTests install
 ```
 
-This places `io.dscope.camel:camel-snowflake:1.0.0-SNAPSHOT` into your local Maven repository so the sample can depend on it.
+This places `io.dscope.camel:camel-snowflake:1.1.0-SNAPSHOT` into your local Maven repository so the sample can depend on it.
 
 For rapid iterations you can use the root helper script (creates fresh snapshot then builds this sample):
 ```bash

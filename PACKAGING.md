@@ -8,12 +8,12 @@ We have successfully added comprehensive packaging configurations to the Maven P
 
 | Package Type | File | Size | Purpose |
 |-------------|------|------|---------|
-| **OSGi Bundle** | `camel-snowflake-1.0.0-SNAPSHOT.jar` | 30 KB | Enterprise deployment in OSGi containers (Karaf, Felix) |
-| **Standalone JAR** | `camel-snowflake-1.0.0-SNAPSHOT-standalone.jar` | 85 MB | Self-contained deployment with all dependencies |
-| **Sources JAR** | `camel-snowflake-1.0.0-SNAPSHOT-sources.jar` | 19 KB | Source code for developers and IDEs |
-| **Javadoc JAR** | `camel-snowflake-1.0.0-SNAPSHOT-javadoc.jar` | 156 KB | API documentation |
-| **Distribution ZIP** | `camel-snowflake-1.0.0-SNAPSHOT-distribution.zip` | 153 MB | Complete distribution with examples and docs |
-| **Distribution TAR.GZ** | `camel-snowflake-1.0.0-SNAPSHOT-distribution.tar.gz` | 153 MB | Unix/Linux distribution archive |
+| **OSGi Bundle** | `camel-snowflake-1.1.0-SNAPSHOT.jar` | 30 KB | Enterprise deployment in OSGi containers (Karaf, Felix) |
+| **Standalone JAR** | `camel-snowflake-1.1.0-SNAPSHOT-standalone.jar` | 85 MB | Self-contained deployment with all dependencies |
+| **Sources JAR** | `camel-snowflake-1.1.0-SNAPSHOT-sources.jar` | 19 KB | Source code for developers and IDEs |
+| **Javadoc JAR** | `camel-snowflake-1.1.0-SNAPSHOT-javadoc.jar` | 156 KB | API documentation |
+| **Distribution ZIP** | `camel-snowflake-1.1.0-SNAPSHOT-distribution.zip` | 153 MB | Complete distribution with examples and docs |
+| **Distribution TAR.GZ** | `camel-snowflake-1.1.0-SNAPSHOT-distribution.tar.gz` | 153 MB | Unix/Linux distribution archive |
 
 ## Maven Profiles
 
@@ -72,12 +72,12 @@ The OSGi bundle includes proper metadata:
 
 ```manifest
 Bundle-SymbolicName: io.dscope.camel.camel-snowflake
-Bundle-Version: 1.0.0.SNAPSHOT
+Bundle-Version: 1.1.0.SNAPSHOT
 Camel-Component: snowflake=io.dscope.camel.snowflake.SnowflakeComponent
 Export-Package: 
-  io.dscope.camel.snowflake;version="1.0.0.SNAPSHOT"
-  io.dscope.camel.snowflake.jdbc;version="1.0.0.SNAPSHOT"
-  io.dscope.camel.snowflake.sql;version="1.0.0.SNAPSHOT"
+  io.dscope.camel.snowflake;version="1.1.0.SNAPSHOT"
+  io.dscope.camel.snowflake.jdbc;version="1.1.0.SNAPSHOT"
+  io.dscope.camel.snowflake.sql;version="1.1.0.SNAPSHOT"
 Import-Package: 
   org.apache.camel;version="[4.0,5.0)"
   net.snowflake.client.jdbc;version="[3.0,4.0)"
@@ -90,14 +90,14 @@ Import-Package:
 ### OSGi Container (Apache Karaf)
 ```bash
 # Install in Karaf
-karaf@root()> bundle:install file:///path/to/camel-snowflake-1.0.0-SNAPSHOT.jar
+karaf@root()> bundle:install file:///path/to/camel-snowflake-1.1.0-SNAPSHOT.jar
 karaf@root()> bundle:start [bundle-id]
 ```
 
 ### Standalone Application
 ```bash
 # Add to classpath
-java -cp "camel-snowflake-1.0.0-SNAPSHOT-standalone.jar:your-app.jar" YourMainClass
+java -cp "camel-snowflake-1.1.0-SNAPSHOT-standalone.jar:your-app.jar" YourMainClass
 ```
 
 ### Maven Dependency
@@ -105,7 +105,7 @@ java -cp "camel-snowflake-1.0.0-SNAPSHOT-standalone.jar:your-app.jar" YourMainCl
 <dependency>
     <groupId>io.dscope.camel</groupId>
     <artifactId>camel-snowflake</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+  <version>1.1.0-SNAPSHOT</version>
 </dependency>
 ```
 
