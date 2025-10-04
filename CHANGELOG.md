@@ -70,19 +70,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sample query validation
 - Parameter binding functionality verification
 
-## [Unreleased]
+## [1.1.0-SNAPSHOT] - Unreleased
 
 ### Added
-- (placeholder)
+- Procedure CALL detection with `CallableStatement` execution and fallback.
+- Deterministic SQL source precedence (header > SQL-like body > endpoint `query`).
+- One-shot sample routes (insert/select/procedure) replacing earlier dev timers.
+- Enhanced debug logging clarifying chosen SQL source, binding results, and execution path.
 
 ### Changed
-- (placeholder)
+- Samples depend on snapshot (1.1.0-SNAPSHOT) to exercise unreleased features; docs advise released vs snapshot usage.
 
 ### Fixed
-- (placeholder)
+- Shading guidance and exclusions prevent stale component class drift inside sample shaded jars.
 
 ### Documentation
-- (placeholder)
+- README and sample docs updated to distinguish production (1.0.0) vs development snapshot (1.1.0-SNAPSHOT) usage.
+- Added notes on stored procedure invocation and dynamic SQL precedence.
 
 ## [1.0.0] - 2025-10-03
 

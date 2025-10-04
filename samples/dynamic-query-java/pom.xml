@@ -15,7 +15,7 @@
        <!-- Pin to the released component (1.0.0); root component is now on 1.1.0-SNAPSHOT.
            This ensures the sample always exercises the installed immutable release
            and avoids shaded class drift during component development. -->
-       <snowflake.component.version>1.0.0</snowflake.component.version>
+       <snowflake.component.version>1.1.0-SNAPSHOT</snowflake.component.version>
         <snowflake.jdbc.version>3.26.1</snowflake.jdbc.version>
         <hikaricp.version>5.1.0</hikaricp.version>
         <jackson.version>2.17.2</jackson.version>

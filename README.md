@@ -7,6 +7,32 @@
 
 A comprehensive Apache Camel component for integrating with Snowflake Data Warehouse, featuring enterprise-grade connection pooling, extensive tests, and production-ready JDBC operations.
 
+## 📦 Versions
+
+(Production users should depend on the latest released version; snapshot builds expose in-progress features.)
+
+## 🛠 Installation
+
+### Maven Dependency (Released)
+
+```xml
+<dependency>
+    <groupId>io.dscope.camel</groupId>
+    <artifactId>camel-snowflake</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+### Maven Dependency (Snapshot / Development)
+Build and install the project locally first (`mvn clean install` at the repo root):
+```xml
+<dependency>
+    <groupId>io.dscope.camel</groupId>
+    <artifactId>camel-snowflake</artifactId>
+    <version>1.1.0-SNAPSHOT</version>
+</dependency>
+```
+
 ## 🚀 Features
 
 - **Complete Camel Integration**: Full producer and consumer support

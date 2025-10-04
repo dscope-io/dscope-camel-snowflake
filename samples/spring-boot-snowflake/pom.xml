@@ -20,7 +20,7 @@
         <java.version>21</java.version>
         <camel.version>4.14.0</camel.version>
     <!-- Pin released component version; root project continues at 1.1.0-SNAPSHOT -->
-    <snowflake.component.version>1.0.0</snowflake.component.version>
+    <snowflake.component.version>1.1.0-SNAPSHOT</snowflake.component.version>
         <snowflake.jdbc.version>3.26.1</snowflake.jdbc.version>
         <hikaricp.version>5.1.0</hikaricp.version>
     </properties>

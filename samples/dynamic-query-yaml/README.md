@@ -187,7 +187,7 @@ Option A: Run shaded jar directly
 java \
   -Dsnowflake.username="$SNOWFLAKE_USERNAME" \
   -Dsnowflake.privateKey="${SNOWFLAKE_PRIVATE_KEY//$'\n'/\\n}" \
-  -jar target/dynamic-query-yaml-1.0.0-SNAPSHOT.jar
+  -jar target/dynamic-query-yaml-1.1.0-SNAPSHOT.jar
 ```
 
 Option A2: Using a key file instead of embedding the key
@@ -196,7 +196,7 @@ Option A2: Using a key file instead of embedding the key
 java \
   -Dsnowflake.username="$SNOWFLAKE_USERNAME" \
   -Dsnowflake.privateKeyFile="/absolute/path/to/private_key_pkcs8.pem" \
-  -jar target/dynamic-query-yaml-1.0.0-SNAPSHOT.jar
+  -jar target/dynamic-query-yaml-1.1.0-SNAPSHOT.jar
 ```
 
 Option A3: One‑shot runner via Maven (exec:java)

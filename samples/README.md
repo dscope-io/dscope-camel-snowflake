@@ -3,6 +3,22 @@
 This folder contains runnable example projects demonstrating how to use the custom `snowflake://` Camel component.
 Each sample is a standalone Maven project with its own dependencies, configuration, and README.
 
+## Quick Run (YAML sample)
+```bash
+cd samples/dynamic-query-yaml
+mvn -q -DskipTests package
+java -jar target/dynamic-query-yaml-1.1.0-SNAPSHOT.jar
+```
+
+## Dependency (snapshot development)
+```xml
+<dependency>
+  <groupId>io.dscope.camel</groupId>
+  <artifactId>camel-snowflake</artifactId>
+  <version>1.1.0-SNAPSHOT</version>
+</dependency>
+```
+
 ## Prerequisites
 - JDK 21+
 - Maven 3.8+
@@ -54,7 +70,7 @@ mvn -q -DskipTests package
 
   # Build and run
   mvn -q -DskipTests package
-  java -jar target/dynamic-query-yaml-1.0.0-SNAPSHOT.jar
+  java -jar target/dynamic-query-yaml-1.1.0-SNAPSHOT.jar
   ```
 - Details: see `samples/dynamic-query-yaml/README.md`
 
