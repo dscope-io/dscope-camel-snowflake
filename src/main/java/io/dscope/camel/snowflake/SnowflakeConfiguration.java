@@ -257,9 +257,15 @@ public class SnowflakeConfiguration {
         if (notBlank(v)) this.privateKeyFilePassword = v;
         if (notBlank(privateKeyFilePassword)) return privateKeyFilePassword;
         // legacy fallback
-        if (notBlank(privateKeyPassword)) return privateKeyPassword;
+        if (notBlank(privateKeyPassword)) {
+            logLegacyPasswordUsage();
+            return privateKeyPassword;
+        }
         String legacy = System.getProperty("snowflake.privateKeyPassword");
-        if (notBlank(legacy)) this.privateKeyPassword = legacy; // retain in legacy field
+        if (notBlank(legacy)) {
+            this.privateKeyPassword = legacy; // retain in legacy field
+            logLegacyPasswordUsage();
+        }
         return privateKeyPassword; // may be null
     }
 
@@ -278,6 +284,14 @@ public class SnowflakeConfiguration {
      */
     @Deprecated
     public void setPrivateKeyPassword(String privateKeyPassword) { this.privateKeyPassword = privateKeyPassword; }
+
+    private static volatile boolean legacyPasswordWarned = false;
+    private void logLegacyPasswordUsage() {
+        if (!legacyPasswordWarned) {
+            legacyPasswordWarned = true;
+            System.err.println("[camel-snowflake] Warning: 'privateKeyPassword' is deprecated; use 'privateKeyFilePassword'.");
+        }
+    }
 
     public boolean isEnableParameterBinding() {
         // System property override if provided
@@ -414,7 +428,9 @@ public class SnowflakeConfiguration {
         if (notBlank(ep.getPrivateKeyFile())) setPrivateKeyFile(ep.getPrivateKeyFile());
             if (notBlank(ep.getPrivateKeyFilePassword())) setPrivateKeyFilePassword(ep.getPrivateKeyFilePassword());
         // legacy overlay
-        if (notBlank(ep.getPrivateKeyPassword())) setPrivateKeyPassword(ep.getPrivateKeyPassword());
+    @SuppressWarnings("deprecation")
+    String legacyPwd = ep.getPrivateKeyPassword();
+    if (notBlank(legacyPwd)) setPrivateKeyPassword(legacyPwd);
         if (notBlank(ep.getDatabase())) setDatabase(ep.getDatabase());
         if (notBlank(ep.getSchema())) setSchema(ep.getSchema());
         if (notBlank(ep.getWarehouse())) setWarehouse(ep.getWarehouse());

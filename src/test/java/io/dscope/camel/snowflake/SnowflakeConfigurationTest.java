@@ -23,6 +23,7 @@ import org.apache.camel.test.junit5.CamelTestSupport;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import org.junit.jupiter.api.Test;
 
 import io.dscope.camel.snowflake.test.SnowflakeTestUtils;
@@ -128,6 +129,28 @@ public class SnowflakeConfigurationTest extends CamelTestSupport {
         template.sendBody("direct:test-data", testData);
         
         mockEndpoint.assertIsSatisfied();
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    public void testPrivateKeyFilePasswordPreferredOverLegacy() {
+        SnowflakeConfiguration cfg = new SnowflakeConfiguration();
+        // Set legacy first (deprecated) - should be null initially
+        assertNull(cfg.getPrivateKeyPassword());
+        cfg.setPrivateKeyPassword("legacyPass"); // legacy assignment
+        // Set new property afterwards which should override legacy
+        cfg.setPrivateKeyFilePassword("newPass");
+        assertEquals("newPass", cfg.getPrivateKeyFilePassword(), "Expected new property to take precedence");
+        String effectiveLegacy = cfg.getPrivateKeyPassword();
+        assertEquals("newPass", effectiveLegacy, "Legacy getter should delegate to new value");
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    public void testLegacyPrivateKeyPasswordFallback() {
+        SnowflakeConfiguration cfg = new SnowflakeConfiguration();
+        cfg.setPrivateKeyPassword("legacyOnly"); // only legacy set
+        assertEquals("legacyOnly", cfg.getPrivateKeyFilePassword(), "Legacy value should be returned when new not set");
     }
 
     @Override
