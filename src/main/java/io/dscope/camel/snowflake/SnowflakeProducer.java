@@ -54,7 +54,17 @@ public class SnowflakeProducer extends DefaultProducer {
         SnowflakeConfiguration effectiveConfig = applyDynamicOverrides(exchange);
 
         // Get SQL query from configuration or message body
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Starting processing for exchange id={} with potential SQL sources: header='{}', body='{}', config='{}'",
+                    exchange.getExchangeId(),
+                    exchange.getIn().getHeader(SnowflakeConstants.HEADER_QUERY),
+                    trimForLog(exchange.getIn().getBody(String.class)),
+                    trimForLog(effectiveConfig.getQuery()));
+        }
         String sql = getSqlQuery(exchange, effectiveConfig);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Resolved effective SQL for exchange id={}: {}", exchange.getExchangeId(), sql);
+        }
         
         if (sql == null || sql.trim().isEmpty()) {
             throw new IllegalArgumentException("No SQL query provided. Set query in endpoint configuration or message body.");
@@ -104,8 +114,13 @@ public class SnowflakeProducer extends DefaultProducer {
                                          Exchange exchange) throws Exception {
         
         LOG.info("Executing parameterized query: {} with {} parameters", sql, bindingResult.getBoundParameterCount());
-        
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+        String trimmed = sql.stripLeading();
+        String upperTrimmed = trimmed.toUpperCase();
+        boolean isCall = upperTrimmed.startsWith("CALL ") || upperTrimmed.equals("CALL") || upperTrimmed.startsWith("CALL\n") || upperTrimmed.startsWith("CALL\t");
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("CALL detection: isCall={} upperTrimmedStarts='{}' originalSql='{}'", isCall, upperTrimmed.length() > 20 ? upperTrimmed.substring(0,20) : upperTrimmed, sql);
+        }
+    try (PreparedStatement statement = isCall ? connection.prepareCall(sql) : connection.prepareStatement(sql)) {
             
             // Bind parameters
             Object[] paramValues = bindingResult.getParameterValues();
@@ -115,10 +130,48 @@ public class SnowflakeProducer extends DefaultProducer {
             }
             
             // Execute query
-            if (isSelectQuery(sql)) {
-                ResultSet resultSet = statement.executeQuery();
-                List<Map<String, Object>> results = processResultSet(resultSet);
-                writeResults(exchange, results);
+            if (isCall) {
+                // For stored procedures, use execute() then inspect
+                boolean hasResultSet;
+                try {
+                    hasResultSet = statement.execute();
+                } catch (Exception ex) {
+                    // Fallback: some driver versions may reject prepared call with certain API; try plain Statement
+                    if (ex.getMessage() != null && ex.getMessage().contains("cannot be executed using current API")) {
+                        LOG.warn("Primary CALL execution path failed, retrying with plain Statement: {}", ex.getMessage());
+                        try (var plain = connection.createStatement()) {
+                            boolean rs = plain.execute(sql);
+                            if (rs) {
+                                try (ResultSet rsObj = plain.getResultSet()) {
+                                    List<Map<String, Object>> results = processResultSet(rsObj);
+                                    writeResults(exchange, results);
+                                }
+                            } else {
+                                int uc = plain.getUpdateCount();
+                                exchange.getIn().setBody(uc);
+                                exchange.getIn().setHeader("CamelSnowflakeUpdateCount", uc);
+                            }
+                            return; // done
+                        }
+                    } else {
+                        throw ex;
+                    }
+                }
+                if (hasResultSet) {
+                    try (ResultSet rs = statement.getResultSet()) {
+                        List<Map<String, Object>> results = processResultSet(rs);
+                        writeResults(exchange, results);
+                    }
+                } else {
+                    int updateCount = statement.getUpdateCount();
+                    exchange.getIn().setBody(updateCount);
+                    exchange.getIn().setHeader("CamelSnowflakeUpdateCount", updateCount);
+                }
+            } else if (isSelectQuery(sql)) {
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    List<Map<String, Object>> results = processResultSet(resultSet);
+                    writeResults(exchange, results);
+                }
             } else {
                 int updateCount = statement.executeUpdate();
                 exchange.getIn().setBody(updateCount);
@@ -150,20 +203,44 @@ public class SnowflakeProducer extends DefaultProducer {
      * Get SQL query from configuration or message body.
      */
     private String getSqlQuery(Exchange exchange, SnowflakeConfiguration cfg) {
+        // Highest precedence: explicit header override
+        Object hdrSql = exchange.getIn().getHeader(SnowflakeConstants.HEADER_QUERY);
+        if (hdrSql != null) {
+            String s = hdrSql.toString();
+            if (!s.isBlank()) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Using SQL from header {}: {}", SnowflakeConstants.HEADER_QUERY, s);
+                }
+                return s;
+            }
+        }
+
         // Prefer message body if it looks like SQL; otherwise fall back to endpoint/config query
         String bodyQuery = exchange.getIn().getBody(String.class);
         if (bodyQuery != null && !bodyQuery.trim().isEmpty()) {
             if (isLikelySql(bodyQuery)) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Using SQL from message body (detected as SQL): {}", bodyQuery);
+                }
                 return bodyQuery;
             }
             // Body is non-empty but not SQL (e.g., a description string); use configured query if present
             if (cfg.getQuery() != null && !cfg.getQuery().isBlank()) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Body not detected as SQL; falling back to configured query: {}", cfg.getQuery());
+                }
                 return cfg.getQuery();
+            }
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Body not SQL and no configured query; returning raw body as last resort");
             }
             return bodyQuery; // as last resort
         }
 
         // Fall back to configuration query
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Using SQL from configuration: {}", cfg.getQuery());
+        }
         return cfg.getQuery();
     }
 
@@ -183,7 +260,9 @@ public class SnowflakeProducer extends DefaultProducer {
         return sql.trim().toUpperCase().startsWith("SELECT") || 
                sql.trim().toUpperCase().startsWith("SHOW") ||
                sql.trim().toUpperCase().startsWith("DESCRIBE") ||
-               sql.trim().toUpperCase().startsWith("WITH");
+               sql.trim().toUpperCase().startsWith("WITH") ||
+               // Treat CALL statements (stored procedures) as returning a result set we should read
+               sql.trim().toUpperCase().startsWith("CALL");
     }
     
     /**
@@ -342,5 +421,14 @@ public class SnowflakeProducer extends DefaultProducer {
         in.setHeader("CamelSnowflakeEffectiveQuery", copy.getQuery());
         in.setHeader("CamelSnowflakeEffectiveAuthenticator", copy.getAuthenticator());
         return copy;
+    }
+
+    private String trimForLog(String v) {
+        if (v == null) return null;
+        String t = v.trim().replaceAll("\n", " ");
+        if (t.length() > 160) {
+            return t.substring(0, 157) + "...";
+        }
+        return t;
     }
 }

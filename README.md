@@ -214,6 +214,33 @@ int[] results = SnowflakeJdbcOperations.executeBatch(
     config, "INSERT INTO users (name, age) VALUES (?, ?)", batchParams);
 ```
 
+### Stored Procedure (CALL) Support
+
+You can invoke stored procedures by supplying a `CALL` statement either as the static endpoint `query`, an overriding header, or directly in the message body. Parameter binding works exactly the same as for `SELECT`/DML:
+
+```java
+from("direct:invokeProc")
+    // binding headers: snowflake.id, snowflake.amount, snowflake.details_json
+    .setBody(constant("CALL insert_new_sample_row(:#id,:#amount,:#details_json)"))
+    .to("snowflake:procDemo?account=...&database=...&username=...&privateKeyFile=...&warehouse=...");
+```
+
+Execution logic:
+* Detects `CALL` (case‑insensitive) → uses `CallableStatement#execute`.
+* On specific Snowflake driver API limitation errors, falls back transparently to `Statement#execute`.
+* Result set (if any) serialized via `outputFormat`; otherwise an empty collection (rows) or minimal document (json/xml) is returned.
+
+Binding header resolution order: exact name (`id`), prefixed header (`snowflake.id`), Camel style (`CamelSnowflakeId`).
+
+### Dynamic SQL Resolution Precedence
+
+When multiple potential SQL sources exist, the producer chooses in this priority (highest first):
+1. Header `CamelSnowflakeQuery` (explicit override)
+2. Message body if it looks like SQL (starts with verbs: SELECT, WITH, INSERT, UPDATE, DELETE, CALL, CREATE, ALTER, MERGE)
+3. Endpoint/configured `query`
+
+This lets you keep a safe default while allowing ad‑hoc overrides. Provide a non‑SQL body (e.g. JSON payload) by either not starting it with a SQL verb or forcing a different query via the header.
+
 ### JSON Data Processing
 
 ```java
@@ -589,6 +616,18 @@ mvn test
 # Generate documentation
 mvn javadoc:javadoc
 ```
+
+### Fast iterative rebuild (component + sample)
+
+Use the helper script for local dev cycles so the sample always picks up the latest snapshot:
+
+```bash
+./dev-install.sh                 # installs & builds dynamic-query-yaml sample
+./dev-install.sh dynamic-query-kotlin   # pick a different sample
+./dev-install.sh -U              # force snapshot/plugin updates
+```
+
+The script performs a root `mvn -DskipTests install` then builds the selected sample via the samples aggregator (`samples/pom.xml`).
 
 ## 📄 License
 
