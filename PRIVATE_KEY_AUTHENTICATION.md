@@ -87,7 +87,7 @@ SNOWFLAKE_PRIVATE_KEY=MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcw...
 - **Validation**: Base64 decoding, ASN.1 header validation, Java KeyFactory parsing
 - **Error Messages**: Informative feedback for troubleshooting authentication issues
 
-The private key authentication is now fully implemented and ready for production use with real Snowflake private keys. When using inline `privateKey` contents, only unencrypted keys are supported; for encrypted PEM, provide a file path plus `privateKeyPassword`.
+The private key authentication is now fully implemented and ready for production use with real Snowflake private keys. When using inline `privateKey` contents, only unencrypted keys are supported; for encrypted PEM, provide a file path plus `privateKeyFilePassword` (legacy: `privateKeyPassword`).
 
 ## Related: OAuth Authentication
 

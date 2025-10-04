@@ -152,7 +152,7 @@ public static DataSource getDataSource(SnowflakeConfiguration config) {
             } else if (config.getPrivateKeyFile() != null && !config.getPrivateKeyFile().isBlank()) {
                 try {
                     // Prefer the driver's built-in loader for key files (supports encrypted/unencrypted PEM)
-                    String keyPassword = config.getPrivateKeyPassword();
+                    String keyPassword = config.getPrivateKeyFilePassword();
                     String effectivePassword = (keyPassword != null && !keyPassword.isBlank()) ? keyPassword : null;
                     String resolvedFile = resolvePrivateKeyFile(config.getPrivateKeyFile());
                     ds.setPrivateKeyFile(resolvedFile, effectivePassword);

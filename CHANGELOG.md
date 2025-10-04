@@ -113,7 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 - Component README: expanded with private key formats, `privateKeyFile`, parameter binding controls, system properties, and JDBC pass-through examples.
-  - Added `privateKeyPassword` docs (encrypted PEM with `privateKeyFile`)
+  - Added `privateKeyFilePassword` (renamed from `privateKeyPassword`; old name still accepted as alias)
 - Sample README: `.env` opt-in (`-Dsample.useDotenv=true`), exec:java property passing (top-level `-D`), config cheat sheet, OAuth example, and Arrow notes.
 - Removed legacy domain-specific mentions in docs/tests for neutral sample naming.
 - Fixed README heading characters, trimmed unverifiable coverage/benchmark claims, and updated repository links to dscope-io/dscope-camel-snowflake.

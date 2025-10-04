@@ -8,8 +8,15 @@
 A comprehensive Apache Camel component for integrating with Snowflake Data Warehouse, featuring enterprise-grade connection pooling, extensive tests, and production-ready JDBC operations.
 
 ## 📦 Versions
+Production users should depend on the latest released version; the snapshot build exposes in‑progress features.
 
-(Production users should depend on the latest released version; snapshot builds expose in-progress features.)
+| Channel | Version | Maven Coordinates | Notes |
+|---------|---------|-------------------|-------|
+| Latest Release | 1.0.0 | `io.dscope.camel:camel-snowflake:1.0.0` | Stable, recommended for production |
+| Development Snapshot | 1.1.0-SNAPSHOT | `io.dscope.camel:camel-snowflake:1.1.0-SNAPSHOT` | Install locally (`mvn install`) or use snapshot repository if published |
+| Next Planned (unreleased) | 1.1.0 | n/a | Will become next release once features in CHANGELOG are finalized |
+
+When 1.1.0 is released, update the "Latest Release" row and the released dependency snippet below.
 
 ## 🛠 Installation
 
@@ -131,8 +138,8 @@ Supported private key formats:
 - DER (binary) via `privateKeyFile`
 
 Encryption support:
-* Using `privateKeyFile`: Encrypted PEM keys are supported when you also set `privateKeyPassword`. Unencrypted PEM/DER is also supported.
-* Using `privateKey` (inline contents): Only unencrypted PKCS#8 or PKCS#1 is supported (decryption is not performed on inline contents). Use `privateKeyFile` + `privateKeyPassword` for encrypted keys.
+* Using `privateKeyFile`: Encrypted PEM keys are supported when you also set `privateKeyFilePassword` (formerly `privateKeyPassword`). Unencrypted PEM/DER is also supported.
+* Using `privateKey` (inline contents): Only unencrypted PKCS#8 or PKCS#1 is supported (decryption is not performed on inline contents). Use `privateKeyFile` + `privateKeyFilePassword` for encrypted keys.
 
 ##### Preparing a PKCS#8 Base64 Private Key
 
@@ -184,7 +191,7 @@ snowflake:endpointName?account=myaccount&database=mydb&schema=myschema[&options]
 | `jdbcUrl` | String | No | - | Custom JDBC URL override (for testing) |
 | `privateKey` | String | No | - | Private key contents for key-pair (JWT) auth. Accepts PKCS#8 or PKCS#1, PEM (with/without headers) or Base64. Mutually exclusive with `password`. |
 | `privateKeyFile` | String | No | - | Path to private key file (PEM or DER). Mutually exclusive with `password`. |
-| `privateKeyPassword` | String | No | - | Password for encrypted private key files. Only used with `privateKeyFile`; ignored when `privateKey` contents are provided. |
+| `privateKeyFilePassword` | String | No | - | Password for encrypted private key files. Only used with `privateKeyFile`; ignored when `privateKey` contents are provided. (Legacy alias: `privateKeyPassword`) |
 | `authenticator` | String | No | `snowflake` | Authenticator. Supported: `snowflake`, `snowflake_jwt`, `externalbrowser`, `oauth`. Auto-set to `snowflake_jwt` when a private key is provided. |
 | `token` | String | No | - | OAuth bearer token (required when `authenticator=oauth`) |
 | `outputFormat` | String | No | `rows` | Serialization of exchange body: `rows` (List<Map<String,Object>>), `json` (string), or `xml` (string). Also controls driver result format via JDBC: `arrow` uses Apache Arrow; any other value uses JSON. |
@@ -322,7 +329,7 @@ The component automatically reads configuration from Java system properties usin
 java \
     -Dsnowflake.username=sample_user \
     -Dsnowflake.privateKeyFile=/abs/path/private_key_pkcs8.pem \
-    -Dsnowflake.privateKeyPassword=changeit \
+    -Dsnowflake.privateKeyFilePassword=changeit \
     -jar your-app.jar
 ```
 
@@ -560,7 +567,7 @@ Notes:
 - Auth (password): `-Dsnowflake.password=...`
 - Auth (key-pair contents): `-Dsnowflake.privateKey="$(cat private_key_pkcs8.pem | tr '\n' '\\n')"`
 - Auth (key-pair file): `-Dsnowflake.privateKeyFile=/abs/path/private_key_pkcs8.pem`
-- Auth (key-pair file + encrypted PEM): `-Dsnowflake.privateKeyFile=/abs/path/encrypted_key.pem -Dsnowflake.privateKeyPassword=changeit`
+- Auth (key-pair file + encrypted PEM): `-Dsnowflake.privateKeyFile=/abs/path/encrypted_key.pem -Dsnowflake.privateKeyFilePassword=changeit` (legacy: `-Dsnowflake.privateKeyPassword=`)
 - Output: `-Dsnowflake.outputFormat=rows|json|xml|arrow`
 - Param binding: `-Dsnowflake.enableParameterBinding=true -Dsnowflake.parameterPrefix=snowflake.`
 - JDBC pass-through: `-Dsnowflake.jdbc.CLIENT_SESSION_KEEP_ALIVE=true`

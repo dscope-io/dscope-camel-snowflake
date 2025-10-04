@@ -180,8 +180,15 @@ public class SnowflakeConfiguration {
     @UriParam(description = "Path to a PKCS#8 private key file (PEM or DER). Used if 'privateKey' is not provided.")
     private String privateKeyFile;
 
+    /**
+     * @deprecated Use {@link #privateKeyFilePassword} instead. Will be removed in a future release after 1.1.x.
+     */
+    @Deprecated
+    @UriParam(description = "(Deprecated) Password for the private key file when using encrypted PKCS#8. Use privateKeyFilePassword instead.", secret = true)
+    private String privateKeyPassword; // legacy name retained for backward compatibility
+
     @UriParam(description = "Password for the private key file when using encrypted PKCS#8", secret = true)
-    private String privateKeyPassword;
+    private String privateKeyFilePassword; // new canonical name
 
     @UriParam(description = "Enable parameter binding for SQL queries (:#paramName syntax)", defaultValue = "true")
     private boolean enableParameterBinding = true;
@@ -236,16 +243,41 @@ public class SnowflakeConfiguration {
         this.privateKeyFile = privateKeyFile;
     }
 
-    public String getPrivateKeyPassword() {
+    /**
+     * Preferred accessor for encrypted private key file password.
+     * Resolution precedence:
+     * 1. Explicit new field (privateKeyFilePassword)
+     * 2. System property snowflake.privateKeyFilePassword
+     * 3. Legacy explicit field privateKeyPassword
+     * 4. Legacy system property snowflake.privateKeyPassword
+     */
+    public String getPrivateKeyFilePassword() {
+        if (notBlank(privateKeyFilePassword)) return privateKeyFilePassword;
+        String v = System.getProperty("snowflake.privateKeyFilePassword");
+        if (notBlank(v)) this.privateKeyFilePassword = v;
+        if (notBlank(privateKeyFilePassword)) return privateKeyFilePassword;
+        // legacy fallback
         if (notBlank(privateKeyPassword)) return privateKeyPassword;
-        String v = System.getProperty("snowflake.privateKeyPassword");
-        if (notBlank(v)) this.privateKeyPassword = v;
-        return privateKeyPassword;
+        String legacy = System.getProperty("snowflake.privateKeyPassword");
+        if (notBlank(legacy)) this.privateKeyPassword = legacy; // retain in legacy field
+        return privateKeyPassword; // may be null
     }
 
-    public void setPrivateKeyPassword(String privateKeyPassword) {
-        this.privateKeyPassword = privateKeyPassword;
+    public void setPrivateKeyFilePassword(String privateKeyFilePassword) {
+        this.privateKeyFilePassword = privateKeyFilePassword;
     }
+
+    /**
+     * @deprecated Use {@link #getPrivateKeyFilePassword()} instead.
+     */
+    @Deprecated
+    public String getPrivateKeyPassword() { return getPrivateKeyFilePassword(); }
+
+    /**
+     * @deprecated Use {@link #setPrivateKeyFilePassword(String)} instead.
+     */
+    @Deprecated
+    public void setPrivateKeyPassword(String privateKeyPassword) { this.privateKeyPassword = privateKeyPassword; }
 
     public boolean isEnableParameterBinding() {
         // System property override if provided
@@ -356,6 +388,7 @@ public class SnowflakeConfiguration {
         c.privateKey = this.privateKey;
         c.privateKeyFile = this.privateKeyFile;
             c.privateKeyPassword = this.privateKeyPassword;
+        c.privateKeyFilePassword = this.privateKeyFilePassword;
         c.enableParameterBinding = this.enableParameterBinding;
         c.parameterPrefix = this.parameterPrefix;
         c.authenticator = this.authenticator;
@@ -379,7 +412,9 @@ public class SnowflakeConfiguration {
         if (notBlank(ep.getPassword())) setPassword(ep.getPassword());
         if (notBlank(ep.getPrivateKey())) setPrivateKey(ep.getPrivateKey());
         if (notBlank(ep.getPrivateKeyFile())) setPrivateKeyFile(ep.getPrivateKeyFile());
-            if (notBlank(ep.getPrivateKeyPassword())) setPrivateKeyPassword(ep.getPrivateKeyPassword());
+            if (notBlank(ep.getPrivateKeyFilePassword())) setPrivateKeyFilePassword(ep.getPrivateKeyFilePassword());
+        // legacy overlay
+        if (notBlank(ep.getPrivateKeyPassword())) setPrivateKeyPassword(ep.getPrivateKeyPassword());
         if (notBlank(ep.getDatabase())) setDatabase(ep.getDatabase());
         if (notBlank(ep.getSchema())) setSchema(ep.getSchema());
         if (notBlank(ep.getWarehouse())) setWarehouse(ep.getWarehouse());

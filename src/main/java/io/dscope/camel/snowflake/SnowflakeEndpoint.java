@@ -72,8 +72,15 @@ public class SnowflakeEndpoint extends DefaultEndpoint {
     @UriParam(description = "Path to a PKCS#8 private key file (PEM or DER). Used if 'privateKey' is not provided.")
     private String privateKeyFile;
 
-    @UriParam(description = "Password for the private key file when using encrypted PKCS#8", secret = true)
+    /**
+     * @deprecated Use privateKeyFilePassword instead. Kept for backward compatibility with existing URIs.
+     */
+    @Deprecated
+    @UriParam(description = "(Deprecated) Password for the private key file when using encrypted PKCS#8. Use privateKeyFilePassword instead.", secret = true)
     private String privateKeyPassword;
+
+    @UriParam(description = "Password for the private key file when using encrypted PKCS#8", secret = true)
+    private String privateKeyFilePassword;
 
     @UriParam(description = "Enable parameter binding for SQL queries (:#paramName syntax)", defaultValue = "true")
     private Boolean enableParameterBinding;
@@ -261,14 +268,26 @@ public class SnowflakeEndpoint extends DefaultEndpoint {
         }
     }
 
-    public String getPrivateKeyPassword() {
-        return privateKeyPassword;
+    public String getPrivateKeyFilePassword() { return privateKeyFilePassword; }
+    public void setPrivateKeyFilePassword(String privateKeyFilePassword) {
+        this.privateKeyFilePassword = privateKeyFilePassword;
+        if (configuration != null) {
+            configuration.setPrivateKeyFilePassword(privateKeyFilePassword);
+        }
     }
-
+    /**
+     * @deprecated Use {@link #getPrivateKeyFilePassword()}.
+     */
+    @Deprecated
+    public String getPrivateKeyPassword() { return privateKeyPassword; }
+    /**
+     * @deprecated Use {@link #setPrivateKeyFilePassword(String)}.
+     */
+    @Deprecated
     public void setPrivateKeyPassword(String privateKeyPassword) {
         this.privateKeyPassword = privateKeyPassword;
         if (configuration != null) {
-            configuration.setPrivateKeyPassword(privateKeyPassword);
+            configuration.setPrivateKeyPassword(privateKeyPassword); // delegates to legacy in configuration
         }
     }
 
