@@ -28,6 +28,10 @@ public final class SnowflakeConstants {
     public static final String HEADER_USERNAME = "CamelSnowflakeUsername";
     public static final String HEADER_PASSWORD = "CamelSnowflakePassword";
     public static final String HEADER_PRIVATE_KEY = "CamelSnowflakePrivateKey";
+    // Additional optional auth-related overrides (not always present)
+    public static final String HEADER_PRIVATE_KEY_FILE = "CamelSnowflakePrivateKeyFile"; // path to private key file
+    public static final String HEADER_PRIVATE_KEY_FILE_PASSWORD = "CamelSnowflakePrivateKeyFilePassword"; // password protecting private key file (if any)
+    public static final String HEADER_OAUTH_TOKEN = "CamelSnowflakeOauthToken"; // bearer OAuth token for OAuth authentication
     public static final String HEADER_DATABASE = "CamelSnowflakeDatabase";
     public static final String HEADER_SCHEMA = "CamelSnowflakeSchema";
     public static final String HEADER_WAREHOUSE = "CamelSnowflakeWarehouse";

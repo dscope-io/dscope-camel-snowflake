@@ -1,0 +1,88 @@
+# Routes for MCP-style Snowflake service
+# Exposes POST /mcp handling JSON-RPC 2.0 MCP tool requests
+
+- restConfiguration:
+    component: netty-http
+    port: "{{mcp.server.port:8080}}"
+    bindingMode: off
+    contextPath: /
+
+- rest:
+    post:
+      - path: /mcp
+        to: direct:mcp-entry
+    get:
+      - path: /mcp/health
+        to: direct:mcp-health
+
+- route:
+    id: mcp-entry
+    from:
+      uri: direct:mcp-entry
+      steps:
+        - process:
+            ref: "#bean:mcpRequestSizeGuard"
+        - process:
+            ref: "#bean:mcpRateLimit"
+        - process:
+            ref: "#bean:mcpHttpValidator"
+        - process:
+            ref: "#bean:mcpJsonRpcEnvelope"
+        - choice:
+            when:
+              - simple: ${exchangeProperty.mcp.jsonrpc.type} == 'REQUEST'
+                steps:
+                  - choice:
+                      when:
+                        - simple: ${exchangeProperty.mcp.jsonrpc.method} == 'tools/list'
+                          steps:
+                            - process:
+                                ref: "#bean:mcpToolsList"
+                            - to: direct:mcp-complete
+                        - simple: ${exchangeProperty.mcp.jsonrpc.method} == 'tools/call'
+                          steps:
+                            - process:
+                                ref: "#bean:mcpSnowflakeRequest"
+                            - to: direct:mcp-snowflake-exec
+                      otherwise:
+                        steps:
+                          - setProperty:
+                              name: mcp.error.message
+                              constant: Unsupported MCP method
+                          - throwException:
+                              exceptionType: java.lang.IllegalArgumentException
+                              message: Unsupported MCP method
+            otherwise:
+              steps:
+                - setProperty:
+                    name: mcp.error.message
+                    constant: Unsupported JSON-RPC message type for entry route
+                - throwException:
+                    exceptionType: java.lang.IllegalArgumentException
+                    message: Unsupported JSON-RPC type
+
+- route:
+    id: mcp-snowflake-exec
+    from:
+      uri: direct:mcp-snowflake-exec
+      steps:
+        - to: "snowflake://mcp?account={{snowflake.account}}&database={{snowflake.database}}&schema={{snowflake.schema}}&warehouse={{snowflake.warehouse}}&role={{snowflake.role}}&outputFormat=json"
+        - process:
+            ref: "#bean:mcpSnowflakeResponse"
+        - to: direct:mcp-complete
+
+- route:
+    id: mcp-complete
+    from:
+      uri: direct:mcp-complete
+      steps:
+        - log: "MCP exchange complete"
+
+- route:
+    id: mcp-health
+    from:
+      uri: direct:mcp-health
+      steps:
+        - process:
+            ref: "#bean:mcpHealthStatus"
+

@@ -17,12 +17,13 @@
 
 package io.dscope.camel.snowflake;
 
-import org.apache.camel.spi.UriParam;
-import org.apache.camel.spi.UriParams;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import org.apache.camel.spi.UriParam;
+import org.apache.camel.spi.UriParams;
 
 /**
  * Configuration class for Snowflake component.

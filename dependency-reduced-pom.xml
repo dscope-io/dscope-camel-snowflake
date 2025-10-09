@@ -5,7 +5,7 @@
   <artifactId>camel-snowflake</artifactId>
   <packaging>bundle</packaging>
   <name>Camel Snowflake Component</name>
-  <version>1.1.0-SNAPSHOT</version>
+  <version>1.2.0</version>
   <description>Apache Camel component for Snowflake data warehouse integration</description>
   <url>https://github.com/dscope/camel-snowflake</url>
   <developers>
@@ -54,6 +54,7 @@
             <Bundle-Version>${project.version}</Bundle-Version>
             <Export-Package>io.dscope.camel.snowflake;version=${project.version},
                             io.dscope.camel.snowflake.jdbc;version=${project.version},
+                            io.dscope.camel.snowflake.mcp;version=${project.version},
                             io.dscope.camel.snowflake.sql;version=${project.version}</Export-Package>
             <Import-Package>org.apache.camel;version="[4.0,5.0)",
                             org.apache.camel.spi;version="[4.0,5.0)",

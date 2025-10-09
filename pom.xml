@@ -6,7 +6,7 @@
 
     <groupId>io.dscope.camel</groupId>
     <artifactId>camel-snowflake</artifactId>
-    <version>1.1.0-SNAPSHOT</version>
+    <version>1.2.0</version>
     <packaging>bundle</packaging>
 
     <name>Camel Snowflake Component</name>
@@ -75,6 +75,12 @@
         <dependency>
             <groupId>org.apache.camel</groupId>
             <artifactId>camel-yaml-dsl</artifactId>
+            <version>${camel.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-netty-http</artifactId>
             <version>${camel.version}</version>
         </dependency>
 
@@ -229,6 +235,7 @@
                         <Export-Package>
                             io.dscope.camel.snowflake;version=${project.version},
                             io.dscope.camel.snowflake.jdbc;version=${project.version},
+                            io.dscope.camel.snowflake.mcp;version=${project.version},
                             io.dscope.camel.snowflake.sql;version=${project.version}
                         </Export-Package>
                         <Import-Package>

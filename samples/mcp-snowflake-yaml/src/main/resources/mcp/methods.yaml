@@ -1,0 +1,64 @@
+methods:
+  - name: selectSample
+    title: Select Sample Rows
+    description: Run a parameterized SELECT filtering by user_id and minimum created_at date.
+    query: |
+      SELECT * FROM SOME_TABLE WHERE USER_ID = :#user_id AND CREATED_AT >= :#min_date
+    enableParameterBinding: true
+    requiredArguments:
+      - user_id
+      - min_date
+    inputSchema:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          description: User identifier to filter rows
+        min_date:
+          type: string
+          description: Earliest created_at date (YYYY-MM-DD)
+      required: [user_id, min_date]
+    outputSchema:
+      type: object
+      properties:
+        status:
+          type: string
+        result:
+          description: Result rows from Snowflake
+      required: [status]
+    annotations:
+      category: snowflake
+
+  - name: insertSample
+    title: Insert Sample Row
+    description: Insert a demo row into SOME_TABLE with bound parameters.
+    query: |
+      INSERT INTO YOUR_DB.PUBLIC.SOME_TABLE (USER_ID, CREATED_AT, AMOUNT, DETAILS) VALUES (:#user_id, CURRENT_TIMESTAMP, :#amount, :#details)
+    enableParameterBinding: true
+    requiredArguments:
+      - user_id
+      - amount
+      - details
+    inputSchema:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          description: User identifier
+        amount:
+          type: number
+          description: Monetary amount
+        details:
+          type: string
+          description: Details or description text
+      required: [user_id, amount, details]
+    outputSchema:
+      type: object
+      properties:
+        status:
+          type: string
+        result:
+          description: Insert confirmation / update count
+      required: [status]
+    annotations:
+      category: snowflake

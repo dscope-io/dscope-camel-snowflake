@@ -110,7 +110,7 @@ sf-sample-run() {
   fi
   # Run
   (cd "$ROOT_DIR/samples/dynamic-query-yaml" \
-    && java "${JAVA_PROPS[@]}" -jar target/dynamic-query-yaml-1.1.0-SNAPSHOT.jar)
+  && java "${JAVA_PROPS[@]}" -jar target/dynamic-query-yaml-1.2.0.jar)
 }
 
 # Run the one-shot runner (RunOnce) which sends a test exchange to direct:snowflakeQuery and exits

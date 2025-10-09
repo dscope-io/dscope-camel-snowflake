@@ -70,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sample query validation
 - Parameter binding functionality verification
 
-## [1.1.0-SNAPSHOT] - Unreleased
+## [1.2.0] - 2025-10-08
 
 ### Added
 - Procedure CALL detection with `CallableStatement` execution and fallback.
@@ -79,13 +79,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced debug logging clarifying chosen SQL source, binding results, and execution path.
 
 ### Changed
-- Samples depend on snapshot (1.1.0-SNAPSHOT) to exercise unreleased features; docs advise released vs snapshot usage.
+- Samples and docs now default to the 1.2.0 release artifact across all modules.
 
 ### Fixed
 - Shading guidance and exclusions prevent stale component class drift inside sample shaded jars.
 
 ### Documentation
-- README and sample docs updated to distinguish production (1.0.0) vs development snapshot (1.1.0-SNAPSHOT) usage.
+- README and sample docs refreshed with 1.2.0 coordinates and dependency snippets.
 - Added notes on stored procedure invocation and dynamic SQL precedence.
 
 ## [1.0.0] - 2025-10-03
