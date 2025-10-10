@@ -14,6 +14,9 @@
     get:
       - path: /mcp/health
         to: direct:mcp-health
+      - path: /mcp/stream
+        produces: text/event-stream
+        to: direct:mcp-stream
 
 - route:
     id: mcp-entry
@@ -34,6 +37,16 @@
                 steps:
                   - choice:
                       when:
+                        - simple: ${exchangeProperty.mcp.jsonrpc.method} == 'initialize'
+                          steps:
+                            - process:
+                                ref: "#bean:mcpInitialize"
+                            - to: direct:mcp-complete
+                        - simple: ${exchangeProperty.mcp.jsonrpc.method} == 'ping'
+                          steps:
+                            - process:
+                                ref: "#bean:mcpPing"
+                            - to: direct:mcp-complete
                         - simple: ${exchangeProperty.mcp.jsonrpc.method} == 'tools/list'
                           steps:
                             - process:
@@ -77,6 +90,14 @@
       uri: direct:mcp-complete
       steps:
         - log: "MCP exchange complete"
+
+- route:
+    id: mcp-stream
+    from:
+      uri: direct:mcp-stream
+      steps:
+        - process:
+            ref: "#bean:mcpStream"
 
 - route:
     id: mcp-health

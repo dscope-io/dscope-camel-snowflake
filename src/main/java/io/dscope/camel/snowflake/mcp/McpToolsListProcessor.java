@@ -45,7 +45,7 @@ public class McpToolsListProcessor implements Processor {
         response.put("id", exchange.getProperty(McpJsonRpcEnvelopeProcessor.EXCHANGE_PROPERTY_ID));
         response.put("result", result);
 
-        exchange.getIn().setBody(response);
+        McpJsonWriter.writeJson(exchange, response);
         exchange.getIn().setHeader(Exchange.HTTP_RESPONSE_CODE, 200);
         exchange.getIn().setHeader(Exchange.CONTENT_TYPE, "application/json");
         propagateProtocolVersion(exchange);

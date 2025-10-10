@@ -56,7 +56,7 @@ public class McpSnowflakeResponseProcessor implements Processor {
         envelope.put("id", exchange.getProperty(McpJsonRpcEnvelopeProcessor.EXCHANGE_PROPERTY_ID));
         envelope.put("result", result);
 
-        exchange.getIn().setBody(envelope);
+        McpJsonWriter.writeJson(exchange, envelope);
         exchange.getIn().setHeader(Exchange.HTTP_RESPONSE_CODE, 200);
         exchange.getIn().setHeader(Exchange.CONTENT_TYPE, "application/json");
         Object protocolVersion = exchange.getProperty(McpHttpValidatorProcessor.EXCHANGE_PROTOCOL_VERSION);

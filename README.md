@@ -296,6 +296,9 @@ The component ships with a collection of registry beans in `io.dscope.camel.snow
 | Bean name | Purpose |
 |-----------|---------|
 | `mcpJsonRpcEnvelope` | Parses JSON-RPC requests/responses, capturing diagnostics for invalid payloads |
+| `mcpInitialize` | Responds to MCP `initialize` handshake with server info and capabilities |
+| `mcpPing` | Handles MCP `ping` health check with echo support |
+| `mcpStream` | Provides a basic Server-Sent Events heartbeat for `/mcp/stream` subscriptions |
 | `mcpHttpValidator` | Validates MCP HTTP headers (Accept, Content-Type, MCP-Protocol-Version) |
 | `mcpMethodCatalog` | Loads tool definitions from `classpath:mcp/methods.yaml` |
 | `mcpSnowflakeRequest` / `mcpSnowflakeResponse` / `mcpSnowflakeError` | Bridge `tools/call` into the `snowflake:` endpoint, sanitize responses, and standardize error payloads |

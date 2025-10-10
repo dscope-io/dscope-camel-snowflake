@@ -10,6 +10,7 @@ This sample demonstrates exposing Snowflake queries through a minimal Model Cont
   - `insertSample` (INSERT with bound parameters)
 - Error responses wrapped in JSON-RPC error envelopes
 - Protocol version negotiation headers (basic) handled by `mcpHttpValidator`
+- Server-Sent Events stream at `/mcp/stream` for MCP stream transport handshakes
 - Basic request protection:
   - Size guard (default 32 KiB, configure with `-Dmcp.maxRequestBytes=65536`)
   - Fixed-window rate limiting (default 50 req/sec, configure with `-Dmcp.rate.maxRequests` & `-Dmcp.rate.windowMillis`)
@@ -89,6 +90,14 @@ Key behaviour:
 - Override the listen port with `-Dmcp.server.port=9090` (see `routes/mcp-snowflake.yaml`).
 - Tune the rate limiter and payload guard: `-Dmcp.rate.maxRequests=100`, `-Dmcp.rate.windowMillis=1000`, `-Dmcp.maxRequestBytes=131072`.
 - Enable verbose logs by adding `-Dlogging.level.io.dscope.camel.snowflake.mcp=DEBUG`.
+
+### Subscribe to MCP stream
+```bash
+curl -Ns http://localhost:8080/mcp/stream \
+  -H 'Accept: text/event-stream'
+```
+
+The sample currently emits an initial heartbeat event so MCP clients can keep the connection open. Extend `McpStreamProcessor` if you need periodic heartbeats or to forward Snowflake-derived notifications.
 
 ### List tools
 ```bash

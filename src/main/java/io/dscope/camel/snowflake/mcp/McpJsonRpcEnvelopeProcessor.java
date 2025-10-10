@@ -84,10 +84,20 @@ public class McpJsonRpcEnvelopeProcessor implements Processor {
         Map<String, Object> params = asMap(payload.get("params"), "params");
 
         switch (method) {
+            case "initialize" -> handleInitialize(exchange, params);
+            case "ping" -> handlePing(exchange, params);
             case "tools/list" -> handleToolsList(exchange, params);
             case "tools/call" -> handleToolsCall(exchange, params);
             default -> throw new IllegalArgumentException("Unsupported MCP method: " + method);
         }
+    }
+
+    private void handleInitialize(Exchange exchange, Map<String, Object> params) {
+        exchange.getIn().setBody(params == null ? Map.of() : params);
+    }
+
+    private void handlePing(Exchange exchange, Map<String, Object> params) {
+        exchange.getIn().setBody(params == null ? Map.of() : params);
     }
 
     private void handleToolsList(Exchange exchange, Map<String, Object> params) {

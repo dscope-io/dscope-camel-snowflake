@@ -48,7 +48,7 @@ public class McpSnowflakeErrorProcessor implements Processor {
         }
         envelope.put("error", error);
 
-        exchange.getIn().setBody(envelope);
+        McpJsonWriter.writeJson(exchange, envelope);
         exchange.getIn().setHeader(Exchange.CONTENT_TYPE, "application/json");
         Object protocolVersion = exchange.getProperty(McpHttpValidatorProcessor.EXCHANGE_PROTOCOL_VERSION);
         if (protocolVersion == null) {
