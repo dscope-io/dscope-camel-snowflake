@@ -7,19 +7,16 @@ import java.util.Map;
 
 import org.apache.camel.BindToRegistry;
 import org.apache.camel.Exchange;
-import org.apache.camel.Processor;
 
+import io.dscope.camel.mcp.catalog.McpMethodDefinition;
+import io.dscope.camel.mcp.processor.AbstractMcpResponseProcessor;
 import io.dscope.camel.snowflake.SnowflakeConstants;
-// Importing referenced MCP classes (same package) is not required, but keep comment for clarity
 
 @BindToRegistry("mcpSnowflakeResponse")
-public class McpSnowflakeResponseProcessor implements Processor {
+public class McpSnowflakeResponseProcessor extends AbstractMcpResponseProcessor {
 
     @Override
-    public void process(Exchange exchange) {
-        if (exchange == null) {
-            throw new IllegalArgumentException("Exchange must not be null");
-        }
+    protected void handleResponse(Exchange exchange) {
         McpMethodDefinition methodDefinition = exchange.getProperty("mcp.method.definition", McpMethodDefinition.class);
         Object body = exchange.getIn().getBody();
         Object resultPayload = normalizeResult(body);
@@ -40,32 +37,21 @@ public class McpSnowflakeResponseProcessor implements Processor {
             structuredContent.put("updateCount", updateCount);
         }
 
-
         List<Map<String, Object>> content = new ArrayList<>();
         content.add(Map.of(
-            "type", "text",
-            "text", buildSummary(structuredContent, methodDefinition)));
+                "type", "text",
+                "text", buildSummary(structuredContent, methodDefinition)));
 
-        Map<String, Object> result = new LinkedHashMap<>();
+        Map<String, Object> result = newResultMap();
         result.put("content", content);
         result.put("structuredContent", structuredContent);
         result.put("isError", Boolean.FALSE);
 
-        Map<String, Object> envelope = new LinkedHashMap<>();
-        envelope.put("jsonrpc", "2.0");
-        envelope.put("id", exchange.getProperty(McpJsonRpcEnvelopeProcessor.EXCHANGE_PROPERTY_ID));
-        envelope.put("result", result);
+        writeResult(exchange, result);
+        clearSnowflakeHeaders(exchange);
+    }
 
-        McpJsonWriter.writeJson(exchange, envelope);
-        exchange.getIn().setHeader(Exchange.HTTP_RESPONSE_CODE, 200);
-        exchange.getIn().setHeader(Exchange.CONTENT_TYPE, "application/json");
-        Object protocolVersion = exchange.getProperty(McpHttpValidatorProcessor.EXCHANGE_PROTOCOL_VERSION);
-        if (protocolVersion == null) {
-            protocolVersion = McpHttpValidatorProcessor.DEFAULT_PROTOCOL_VERSION;
-        }
-        exchange.getIn().setHeader("MCP-Protocol-Version", protocolVersion);
-        exchange.getIn().setHeader("Cache-Control", "no-store");
-
+    private void clearSnowflakeHeaders(Exchange exchange) {
         exchange.getIn().removeHeader(SnowflakeConstants.HEADER_QUERY);
         exchange.getIn().removeHeader(SnowflakeConstants.HEADER_ACCOUNT);
         exchange.getIn().removeHeader(SnowflakeConstants.HEADER_USERNAME);

@@ -5,6 +5,17 @@ All notable changes to the Camel Snowflake Component will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Added dependency on `io.dscope.camel:camel-mcp` to reuse shared MCP routing utilities.
+
+### Changed
+- Upgraded Apache Camel dependencies to 4.15.0 to align with shared MCP utilities.
+
+### Removed
+- Deprecated the Snowflake-specific MCP helper processors (HTTP validator, initialize, ping, tools list, stream, rate limit, request guard, health, error); consumers should now reference the shared `camel-mcp` beans directly.
+
 ## [1.0.0-SNAPSHOT] - 2025-09-25
 
 ### Added

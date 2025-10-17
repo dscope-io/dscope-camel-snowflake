@@ -1,6 +1,36 @@
 # Routes for MCP-style Snowflake service
 # Exposes POST /mcp handling JSON-RPC 2.0 MCP tool requests
 
+- beans:
+    - name: mcpRequestSizeGuard
+      type: io.dscope.camel.mcp.processor.McpRequestSizeGuardProcessor
+    - name: mcpRateLimit
+      type: io.dscope.camel.mcp.processor.McpRateLimitProcessor
+    - name: mcpHttpValidator
+      type: io.dscope.camel.mcp.processor.McpHttpValidatorProcessor
+    - name: mcpJsonRpcEnvelope
+      type: io.dscope.camel.mcp.processor.McpJsonRpcEnvelopeProcessor
+    - name: mcpInitialize
+      type: io.dscope.camel.mcp.processor.McpInitializeProcessor
+    - name: mcpPing
+      type: io.dscope.camel.mcp.processor.McpPingProcessor
+    - name: mcpToolsList
+      type: io.dscope.camel.mcp.processor.McpToolsListProcessor
+    - name: mcpStream
+      type: io.dscope.camel.mcp.processor.McpStreamProcessor
+    - name: mcpHealthStatus
+      type: io.dscope.camel.mcp.processor.McpHealthStatusProcessor
+    - name: mcpSnowflakeQueries
+      type: java.util.LinkedHashMap
+      properties:
+        selectSample: "{{mcp.snowflake.queries.selectSample}}"
+        insertSample: "{{mcp.snowflake.queries.insertSample}}"
+    - name: mcpSnowflakeRequest
+      type: io.dscope.camel.snowflake.mcp.McpSnowflakeRequestProcessor
+      properties:
+        queries: '#bean:mcpSnowflakeQueries'
+        enableParameterBinding: "{{mcp.snowflake.enableParameterBinding}}"
+
 - restConfiguration:
     component: netty-http
     port: "{{mcp.server.port:8080}}"

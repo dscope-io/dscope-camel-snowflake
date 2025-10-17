@@ -68,7 +68,7 @@
 
 ### Technology Stack
 - **Java**: 21 LTS (Latest Long Term Support)
-- **Apache Camel**: 4.14.0 (Latest stable)
+- **Apache Camel**: 4.15.0 (Latest stable)
 - **Build Tool**: Maven 3.9.1
 - **Connection Pooling**: HikariCP 5.1.0
 - **Database Driver**: Snowflake JDBC 3.26.1

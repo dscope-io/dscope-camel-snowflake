@@ -70,7 +70,7 @@ From the repository root:
 mvn -q -DskipTests install
 ```
 
-This places `io.dscope.camel:camel-snowflake:1.2.0` into your local Maven repository so the sample can depend on it.
+This places `io.dscope.camel:camel-snowflake:1.3.0` into your local Maven repository so the sample can depend on it.
 
 For rapid iterations you can use the root helper script (creates fresh snapshot then builds this sample):
 ```bash
@@ -187,7 +187,7 @@ Option A: Run shaded jar directly
 java \
   -Dsnowflake.username="$SNOWFLAKE_USERNAME" \
   -Dsnowflake.privateKey="${SNOWFLAKE_PRIVATE_KEY//$'\n'/\\n}" \
-  -jar target/dynamic-query-yaml-1.2.0.jar
+  -jar target/dynamic-query-yaml-1.3.0.jar
 ```
 
 Option A2: Using a key file instead of embedding the key
@@ -196,7 +196,7 @@ Option A2: Using a key file instead of embedding the key
 java \
   -Dsnowflake.username="$SNOWFLAKE_USERNAME" \
   -Dsnowflake.privateKeyFile="/absolute/path/to/private_key_pkcs8.pem" \
-  -jar target/dynamic-query-yaml-1.2.0.jar
+  -jar target/dynamic-query-yaml-1.3.0.jar
 ```
 
 Option A3: One‑shot runner via Maven (exec:java)

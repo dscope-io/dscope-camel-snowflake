@@ -7,6 +7,9 @@ import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.camel.support.DefaultExchange;
 import org.junit.jupiter.api.Test;
 
+import io.dscope.camel.mcp.catalog.McpMethodCatalog;
+import io.dscope.camel.mcp.catalog.McpMethodDefinition;
+import io.dscope.camel.mcp.processor.McpJsonRpcEnvelopeProcessor;
 import io.dscope.camel.snowflake.SnowflakeConstants;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -17,12 +20,11 @@ class McpSnowflakeRequestProcessorTest {
     void testConnectionOverridesAndMasking() throws Exception {
         McpMethodDefinition def = new McpMethodDefinition();
         def.setName("selectSample");
-        def.setQuery("SELECT 1");
-        def.setEnableParameterBinding(true);
-    // required arguments determined from inputSchema; leave default empty
+        def.setRequiredArguments(java.util.List.of("user_id", "min_date"));
 
         McpMethodCatalog catalog = new McpMethodCatalog(java.util.List.of(def));
         McpSnowflakeRequestProcessor processor = new McpSnowflakeRequestProcessor(catalog);
+        processor.setQueries(java.util.Map.of("selectSample", "SELECT 1"));
 
         try (DefaultCamelContext ctx = new DefaultCamelContext()) {
             Exchange exchange = new DefaultExchange(ctx);
@@ -75,9 +77,10 @@ class McpSnowflakeRequestProcessorTest {
     void testPrivateKeyFileMasking() throws Exception {
         McpMethodDefinition def = new McpMethodDefinition();
         def.setName("selectSample");
-        def.setQuery("SELECT 1");
+    def.setRequiredArguments(java.util.List.of());
         McpMethodCatalog catalog = new McpMethodCatalog(java.util.List.of(def));
         McpSnowflakeRequestProcessor processor = new McpSnowflakeRequestProcessor(catalog);
+        processor.setQueries(java.util.Map.of("selectSample", "SELECT 1"));
         try (DefaultCamelContext ctx = new DefaultCamelContext()) {
             Exchange exchange = new DefaultExchange(ctx);
             exchange.setProperty(McpJsonRpcEnvelopeProcessor.EXCHANGE_PROPERTY_TOOL_NAME, "selectSample");
@@ -103,9 +106,10 @@ class McpSnowflakeRequestProcessorTest {
     void testPrivateKeyInlineMasking() throws Exception {
         McpMethodDefinition def = new McpMethodDefinition();
         def.setName("selectSample");
-        def.setQuery("SELECT 1");
+    def.setRequiredArguments(java.util.List.of());
         McpMethodCatalog catalog = new McpMethodCatalog(java.util.List.of(def));
         McpSnowflakeRequestProcessor processor = new McpSnowflakeRequestProcessor(catalog);
+        processor.setQueries(java.util.Map.of("selectSample", "SELECT 1"));
         try (DefaultCamelContext ctx = new DefaultCamelContext()) {
             Exchange exchange = new DefaultExchange(ctx);
             exchange.setProperty(McpJsonRpcEnvelopeProcessor.EXCHANGE_PROPERTY_TOOL_NAME, "selectSample");
@@ -128,9 +132,10 @@ class McpSnowflakeRequestProcessorTest {
     void testOauthTokenMasking() throws Exception {
         McpMethodDefinition def = new McpMethodDefinition();
         def.setName("selectSample");
-        def.setQuery("SELECT 1");
+    def.setRequiredArguments(java.util.List.of());
         McpMethodCatalog catalog = new McpMethodCatalog(java.util.List.of(def));
         McpSnowflakeRequestProcessor processor = new McpSnowflakeRequestProcessor(catalog);
+        processor.setQueries(java.util.Map.of("selectSample", "SELECT 1"));
         try (DefaultCamelContext ctx = new DefaultCamelContext()) {
             Exchange exchange = new DefaultExchange(ctx);
             exchange.setProperty(McpJsonRpcEnvelopeProcessor.EXCHANGE_PROPERTY_TOOL_NAME, "selectSample");
@@ -153,9 +158,10 @@ class McpSnowflakeRequestProcessorTest {
     void testConflictingAuthOverrides() throws Exception {
         McpMethodDefinition def = new McpMethodDefinition();
         def.setName("selectSample");
-        def.setQuery("SELECT 1");
+    def.setRequiredArguments(java.util.List.of());
         McpMethodCatalog catalog = new McpMethodCatalog(java.util.List.of(def));
         McpSnowflakeRequestProcessor processor = new McpSnowflakeRequestProcessor(catalog);
+        processor.setQueries(java.util.Map.of("selectSample", "SELECT 1"));
 
         try (DefaultCamelContext ctx = new DefaultCamelContext()) {
             Exchange exchange = new DefaultExchange(ctx);
@@ -196,6 +202,54 @@ class McpSnowflakeRequestProcessorTest {
             exchange.getIn().setBody(root);
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> processor.process(exchange));
             assertTrue(ex.getMessage().contains("oauthToken"));
+        }
+    }
+
+    @Test
+    void testQueryPropertyFallback() throws Exception {
+        McpMethodDefinition def = new McpMethodDefinition();
+        def.setName("single");
+        McpMethodCatalog catalog = new McpMethodCatalog(java.util.List.of(def));
+        McpSnowflakeRequestProcessor processor = new McpSnowflakeRequestProcessor(catalog);
+        processor.setQuery("SELECT 42");
+
+        try (DefaultCamelContext ctx = new DefaultCamelContext()) {
+            Exchange exchange = new DefaultExchange(ctx);
+            exchange.setProperty(McpJsonRpcEnvelopeProcessor.EXCHANGE_PROPERTY_TOOL_NAME, "single");
+            exchange.getIn().setBody(Map.of());
+
+            processor.process(exchange);
+
+            assertEquals("SELECT 42", exchange.getIn().getHeader(SnowflakeConstants.HEADER_QUERY));
+        }
+    }
+
+    @Test
+    void testEnableParameterBindingDefaultProperty() throws Exception {
+        McpMethodDefinition def = new McpMethodDefinition();
+        def.setName("single");
+        McpMethodCatalog catalog = new McpMethodCatalog(java.util.List.of(def));
+        McpSnowflakeRequestProcessor processor = new McpSnowflakeRequestProcessor(catalog);
+        processor.setQuery("SELECT 1");
+        processor.setEnableParameterBinding(Boolean.FALSE);
+
+        try (DefaultCamelContext ctx = new DefaultCamelContext()) {
+            Exchange exchange = new DefaultExchange(ctx);
+            exchange.setProperty(McpJsonRpcEnvelopeProcessor.EXCHANGE_PROPERTY_TOOL_NAME, "single");
+            exchange.getIn().setBody(Map.of());
+
+            processor.process(exchange);
+
+            Object header = exchange.getIn().getHeader(SnowflakeConstants.HEADER_ENABLE_PARAMETER_BINDING);
+            assertEquals(Boolean.FALSE, header);
+
+            // payload override should still win
+            Exchange override = new DefaultExchange(ctx);
+            override.setProperty(McpJsonRpcEnvelopeProcessor.EXCHANGE_PROPERTY_TOOL_NAME, "single");
+            override.getIn().setBody(Map.of("enableParameterBinding", Boolean.TRUE));
+
+            processor.process(override);
+            assertEquals(Boolean.TRUE, override.getIn().getHeader(SnowflakeConstants.HEADER_ENABLE_PARAMETER_BINDING));
         }
     }
 }

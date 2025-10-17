@@ -1,0 +1,105 @@
+# Optional WebSocket entrypoint mirroring the HTTP MCP helpers
+- route:
+    id: mcp-snowflake-ws
+    from:
+      uri: "undertow:ws://0.0.0.0:{{mcp.ws.port:8090}}/mcp?sendToAll=false&allowedOrigins=*&exchangePattern=InOut"
+      steps:
+        - process:
+            ref: "#bean:mcpRequestSizeGuard"
+        - process:
+            ref: "#bean:mcpRateLimit"
+        - process:
+            ref: "#bean:mcpJsonRpcEnvelope"
+        - choice:
+            when:
+              - simple: ${exchangeProperty.mcp.jsonrpc.type} == 'NOTIFICATION'
+                steps:
+                  - log:
+                      loggingLevel: DEBUG
+                      message: "Ignoring MCP notification over websocket: ${body}"
+                  - stop: {}
+              - simple: ${exchangeProperty.mcp.jsonrpc.method} == 'initialize'
+                steps:
+                  - process:
+                      ref: "#bean:mcpInitialize"
+              - simple: ${exchangeProperty.mcp.jsonrpc.method} == 'ping'
+                steps:
+                  - process:
+                      ref: "#bean:mcpPing"
+              - simple: ${exchangeProperty.mcp.jsonrpc.method} == 'tools/list'
+                steps:
+                  - process:
+                      ref: "#bean:mcpToolsList"
+              - simple: ${exchangeProperty.mcp.jsonrpc.method} == 'tools/call'
+                steps:
+                  - process:
+                      ref: "#bean:mcpSnowflakeRequest"
+                  - to: direct:mcp-snowflake-exec
+              - simple: ${exchangeProperty.mcp.jsonrpc.method} == 'health'
+                steps:
+                  - process:
+                      ref: "#bean:mcpHealthStatus"
+              - simple: ${exchangeProperty.mcp.jsonrpc.method} == 'stream'
+                steps:
+                  - process:
+                      ref: "#bean:mcpStream"
+            otherwise:
+              steps:
+                - setProperty:
+                    name: mcp.error.message
+                    simple: "Unsupported MCP method: ${exchangeProperty.mcp.jsonrpc.method}"
+                - throwException:
+                    exceptionType: java.lang.IllegalArgumentException
+                    message: Unsupported MCP method
+        - choice:
+            when:
+              - simple: ${header.Content-Type} == null
+                steps:
+                  - setHeader:
+                      name: Content-Type
+                      constant: application/json
+        - convertBodyTo:
+            type: java.lang.String
+        - log:
+            loggingLevel: DEBUG
+            message: "Returning MCP websocket response: ${body}"
+        - setHeader:
+            name: CamelWebSocketSendToAll
+            constant: false
+        - to: "undertow:ws://0.0.0.0:{{mcp.ws.port:8090}}/mcp"
+
+- route:
+    id: mcp-snowflake-ws-stream
+    from:
+      uri: "undertow:http://0.0.0.0:{{mcp.ws.port:8090}}/mcp/stream?httpMethodRestrict=GET"
+      steps:
+        - process:
+            ref: "#bean:mcpStream"
+
+- route:
+    id: mcp-snowflake-ws-health
+    from:
+      uri: "undertow:http://0.0.0.0:{{mcp.ws.port:8090}}/mcp/health?httpMethodRestrict=GET"
+      steps:
+        - process:
+            ref: "#bean:mcpHealthStatus"
+
+- route:
+    id: mcp-snowflake-ws-notifications
+    from:
+      uri: "undertow:http://0.0.0.0:{{mcp.ws.port:8090}}/mcp/notifications?httpMethodRestrict=POST"
+      steps:
+        - convertBodyTo:
+            type: java.lang.String
+        - log:
+            loggingLevel: DEBUG
+            message: "Broadcasting MCP websocket notification: ${body}"
+        - setHeader:
+            name: CamelWebSocketSendToAll
+            constant: true
+        - to: "undertow:ws://0.0.0.0:{{mcp.ws.port:8090}}/mcp"
+        - setHeader:
+            name: CamelHttpResponseCode
+            constant: "202"
+        - setBody:
+            constant: ""

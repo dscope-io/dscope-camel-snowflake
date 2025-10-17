@@ -6,11 +6,9 @@ import java.util.Optional;
 
 import org.apache.camel.BindToRegistry;
 import org.apache.camel.Exchange;
-import org.apache.camel.Message;
-import org.apache.camel.Processor;
 
 @BindToRegistry("mcpInitialize")
-public class McpInitializeProcessor implements Processor {
+public class McpInitializeProcessor extends io.dscope.camel.mcp.processor.AbstractMcpResponseProcessor {
 
     private static final String DEFAULT_SERVER_NAME = "camel-snowflake-mcp";
     private static final String DEFAULT_SERVER_VERSION = "dev";
@@ -34,35 +32,17 @@ public class McpInitializeProcessor implements Processor {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public void process(Exchange exchange) {
-        if (exchange == null) {
-            throw new IllegalArgumentException("Exchange must not be null");
-        }
+    protected void handleResponse(Exchange exchange) {
+        Map<String, Object> params = getRequestParameters(exchange, true);
+        String protocolVersion = resolveProtocolVersion(exchange);
 
-        Message in = exchange.getIn();
-        Map<String, Object> params = in.getBody(Map.class);
-        if (params == null) {
-            params = Map.of();
-            in.setBody(params);
-        }
+        Map<String, Object> result = newResultMap();
+        result.put("protocolVersion", protocolVersion);
+        result.put("serverInfo", buildServerInfo());
+        result.put("capabilities", buildCapabilities(params));
 
-    String protocolVersion = resolveProtocolVersion(exchange);
-
-    Map<String, Object> result = new LinkedHashMap<>();
-    result.put("protocolVersion", protocolVersion);
-    result.put("serverInfo", buildServerInfo());
-    result.put("capabilities", buildCapabilities(params));
-
-        Map<String, Object> envelope = new LinkedHashMap<>();
-        envelope.put("jsonrpc", "2.0");
-        envelope.put("id", exchange.getProperty(McpJsonRpcEnvelopeProcessor.EXCHANGE_PROPERTY_ID));
-        envelope.put("result", result);
-
-        McpJsonWriter.writeJson(exchange, envelope);
-        in.setHeader(Exchange.HTTP_RESPONSE_CODE, 200);
-        in.setHeader(Exchange.CONTENT_TYPE, "application/json");
-        propagateProtocolVersion(exchange, protocolVersion);
+        writeResult(exchange, result);
+        setProtocolHeaders(exchange, protocolVersion);
     }
 
     private Map<String, Object> buildServerInfo() {
@@ -83,19 +63,6 @@ public class McpInitializeProcessor implements Processor {
         return capabilities;
     }
 
-    private void propagateProtocolVersion(Exchange exchange, String protocolVersion) {
-        exchange.getIn().setHeader("MCP-Protocol-Version", protocolVersion);
-        exchange.getIn().setHeader("Cache-Control", "no-store");
-    }
-
-    private String resolveProtocolVersion(Exchange exchange) {
-        Object version = exchange.getProperty(McpHttpValidatorProcessor.EXCHANGE_PROTOCOL_VERSION);
-        if (version == null) {
-            return McpHttpValidatorProcessor.DEFAULT_PROTOCOL_VERSION;
-        }
-        return version.toString();
-    }
-
     private static String resolveServerVersion() {
         Package pkg = McpInitializeProcessor.class.getPackage();
         if (pkg != null) {
@@ -104,7 +71,7 @@ public class McpInitializeProcessor implements Processor {
                 return version;
             }
         }
-        return DEFAULT_SERVER_VERSION;
+        return System.getProperty("mcp.server.version", DEFAULT_SERVER_VERSION);
     }
 
     private static String resolveServerName() {
@@ -115,6 +82,6 @@ public class McpInitializeProcessor implements Processor {
                 return name;
             }
         }
-        return DEFAULT_SERVER_NAME;
+        return System.getProperty("mcp.server.name", DEFAULT_SERVER_NAME);
     }
 }

@@ -22,7 +22,7 @@ mcp_sf_run() {
     -Dsnowflake.schema="${SNOWFLAKE_SCHEMA:-PUBLIC}" \
     -Dsnowflake.warehouse="${SNOWFLAKE_WAREHOUSE:-COMPUTE_WH}" \
     -Dsnowflake.role="${SNOWFLAKE_ROLE:-ACCOUNTADMIN}" \
-  -jar samples/mcp-snowflake-yaml/target/mcp-snowflake-yaml-1.2.0.jar "$@"
+  -jar samples/mcp-snowflake-yaml/target/mcp-snowflake-yaml-1.3.0.jar "$@"
 }
 
 mcp_sf_list_tools() {

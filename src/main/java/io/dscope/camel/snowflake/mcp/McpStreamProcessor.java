@@ -4,38 +4,29 @@ import java.time.Instant;
 
 import org.apache.camel.BindToRegistry;
 import org.apache.camel.Exchange;
-import org.apache.camel.Processor;
 
 /**
- * Provides a minimal Server-Sent Events handshake body so MCP clients can
- * subscribe to the stream endpoint even if no events are emitted yet.
+ * Delegates the core SSE setup to the shared processor while customising the initial body.
  */
 @BindToRegistry("mcpStream")
-public class McpStreamProcessor implements Processor {
-
-    private static final String SSE_CONTENT_TYPE = "text/event-stream";
+public class McpStreamProcessor extends io.dscope.camel.mcp.processor.McpStreamProcessor {
 
     @Override
     public void process(Exchange exchange) {
-        if (exchange == null) {
-            throw new IllegalArgumentException("Exchange must not be null");
-        }
-
-        exchange.getIn().setHeader(Exchange.HTTP_RESPONSE_CODE, 200);
-        exchange.getIn().setHeader(Exchange.CONTENT_TYPE, SSE_CONTENT_TYPE);
-        exchange.getIn().setHeader("Cache-Control", "no-store");
-        exchange.getIn().setHeader("Connection", "keep-alive");
+        super.process(exchange);
         exchange.getIn().setHeader("X-Accel-Buffering", "no");
+        exchange.getIn().setBody(buildHeartbeatPayload());
+    }
 
-    StringBuilder body = new StringBuilder();
-    body.append(": stream established\n");
-    body.append("event: heartbeat\n");
-    body.append("data: \"");
-    body.append(Instant.now());
-    body.append('"');
-    body.append('\n');
-    body.append('\n');
-
-        exchange.getIn().setBody(body.toString());
+    private String buildHeartbeatPayload() {
+        StringBuilder body = new StringBuilder();
+        body.append(": stream established\n");
+        body.append("event: heartbeat\n");
+        body.append("data: \"");
+        body.append(Instant.now());
+        body.append('\"');
+        body.append('\n');
+        body.append('\n');
+        return body.toString();
     }
 }

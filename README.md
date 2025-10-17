@@ -1,7 +1,7 @@
 # Apache Camel Snowflake Component
 
 [![Java 21](https://img.shields.io/badge/Java-21-blue.svg)](https://openjdk.java.net/projects/jdk/21/)
-[![Apache Camel 4.14.0](https://img.shields.io/badge/Apache%20Camel-4.14.0-orange.svg)](https://camel.apache.org/)
+[![Apache Camel 4.15.0](https://img.shields.io/badge/Apache%20Camel-4.15.0-orange.svg)](https://camel.apache.org/)
 [![Maven](https://img.shields.io/badge/Maven-3.9+-brightgreen.svg)](https://maven.apache.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-yellow.svg)](https://opensource.org/licenses/Apache-2.0)
 
@@ -12,11 +12,11 @@ Production users should depend on the latest released version; the snapshot buil
 
 | Channel | Version | Maven Coordinates | Notes |
 |---------|---------|-------------------|-------|
-| Latest Release | 1.2.0 | `io.dscope.camel:camel-snowflake:1.2.0` | Stable, recommended for production |
-| Previous Release | 1.0.0 | `io.dscope.camel:camel-snowflake:1.0.0` | Legacy release (upgrade recommended) |
-| Development Snapshot | 1.2.0 | `io.dscope.camel:camel-snowflake:1.2.0` | Build from source (`mvn install`) to stay current with main |
+| Latest Release | 1.3.0 | `io.dscope.camel:camel-snowflake:1.3.0` | Stable, recommended for production |
+| Previous Release | 1.2.0 | `io.dscope.camel:camel-snowflake:1.2.0` | Prior feature release |
+| Development Snapshot | 1.3.0 | `io.dscope.camel:camel-snowflake:1.3.0` | Build from source (`mvn install`) to stay current with main |
 
-Once 1.3.0 development begins, update the table and dependency snippets accordingly.
+Once 1.4.0 development begins, update the table and dependency snippets accordingly.
 
 ## 🛠 Installation
 
@@ -26,7 +26,7 @@ Once 1.3.0 development begins, update the table and dependency snippets accordin
 <dependency>
     <groupId>io.dscope.camel</groupId>
     <artifactId>camel-snowflake</artifactId>
-    <version>1.2.0</version>
+    <version>1.3.0</version>
 </dependency>
 ```
 
@@ -36,7 +36,7 @@ Build and install the project locally first (`mvn clean install` at the repo roo
 <dependency>
     <groupId>io.dscope.camel</groupId>
     <artifactId>camel-snowflake</artifactId>
-    <version>1.2.0</version>
+    <version>1.3.0</version>
 </dependency>
 ```
 
@@ -54,7 +54,7 @@ Build and install the project locally first (`mvn clean install` at the repo roo
 ## 📋 Requirements
 
 - Java 21 LTS or higher
-- Apache Camel 4.14.0+
+- Apache Camel 4.15.0+
 - Maven 3.9.1+
 - Snowflake account (for production use)
 
@@ -65,7 +65,7 @@ Current tested versions in this repository:
 | Component            | Version        |
 |----------------------|----------------|
 | Java                 | 21             |
-| Apache Camel         | 4.14.0         |
+| Apache Camel         | 4.15.0         |
 | Snowflake JDBC       | 3.26.1         |
 | HikariCP             | 5.1.0          |
 | Jackson              | 2.17.2         |
@@ -75,7 +75,7 @@ Current tested versions in this repository:
 ## ✅ Compatibility
 
 - Java 21+
-- Apache Camel 4.14.x (component built and tested with 4.14.0; compatible with Camel 4.x)
+- Apache Camel 4.15.x (component built and tested with 4.15.0; compatible with Camel 4.x)
 - Snowflake JDBC 3.26.x
 - OSGi: packaged as a bundle (Felix Maven Bundle Plugin)
 - Spring Boot: sample app on Spring Boot 3.5.x using Camel Spring Boot
@@ -88,7 +88,7 @@ Current tested versions in this repository:
 <dependency>
     <groupId>io.dscope.camel</groupId>
     <artifactId>camel-snowflake</artifactId>
-    <version>1.2.0</version>
+    <version>1.3.0</version>
 </dependency>
 ```
 
@@ -289,43 +289,55 @@ List<JsonNode> jsonResults = SnowflakeJdbcOperations.queryJsonData(
 
 ## 🤖 Model Context Protocol (MCP) Support
 
-The component ships with a collection of registry beans in `io.dscope.camel.snowflake.mcp` that let you expose Snowflake tooling to MCP-compatible clients (GitHub Copilot, VS Code, etc.) with minimal wiring.
+The component ships with registry beans in `io.dscope.camel.snowflake.mcp` that let you expose Snowflake tooling to MCP-compatible clients (GitHub Copilot, VS Code, etc.) with minimal wiring. They rely on the shared `camel-mcp` catalog utilities for metadata loading.
 
-### Included Processors
+### Included Beans
 
 | Bean name | Purpose |
 |-----------|---------|
-| `mcpJsonRpcEnvelope` | Parses JSON-RPC requests/responses, capturing diagnostics for invalid payloads |
-| `mcpInitialize` | Responds to MCP `initialize` handshake with server info and capabilities |
-| `mcpPing` | Handles MCP `ping` health check with echo support |
-| `mcpStream` | Provides a basic Server-Sent Events heartbeat for `/mcp/stream` subscriptions |
-| `mcpHttpValidator` | Validates MCP HTTP headers (Accept, Content-Type, MCP-Protocol-Version) |
-| `mcpMethodCatalog` | Loads tool definitions from `classpath:mcp/methods.yaml` |
-| `mcpSnowflakeRequest` / `mcpSnowflakeResponse` / `mcpSnowflakeError` | Bridge `tools/call` into the `snowflake:` endpoint, sanitize responses, and standardize error payloads |
-| `mcpToolsList` | Implements `tools/list` using the catalog |
-| `mcpRateLimit`, `mcpRequestSizeGuard` | Optional guards for burst traffic and oversized MCP payloads |
+| `mcpSnowflakeRequest` | Bridges `tools/call` payloads into the `snowflake:` endpoint, applies connection overrides, and injects configured SQL templates |
+| `mcpSnowflakeResponse` | Normalizes Snowflake results into MCP JSON-RPC responses |
 
-Because the beans are annotated with `@BindToRegistry`, they are auto-discovered by Camel Main/Spring XML/YAML DSL. Simply reference the beans in your routes to handle MCP webhook traffic:
+The remaining MCP processors (JSON-RPC envelope parsing, rate limiting, streaming, etc.) are provided directly by the `camel-mcp` dependency. Define them in your route configuration (see sample below) and combine them with the Snowflake-specific beans:
 
 ```yaml
 # snippet from samples/mcp-snowflake-yaml
+- beans:
+        - name: mcpRequestSizeGuard
+            type: io.dscope.camel.mcp.processor.McpRequestSizeGuardProcessor
+        - name: mcpRateLimit
+            type: io.dscope.camel.mcp.processor.McpRateLimitProcessor
+        - name: mcpHttpValidator
+            type: io.dscope.camel.mcp.processor.McpHttpValidatorProcessor
+        - name: mcpJsonRpcEnvelope
+            type: io.dscope.camel.mcp.processor.McpJsonRpcEnvelopeProcessor
+        - name: mcpInitialize
+            type: io.dscope.camel.mcp.processor.McpInitializeProcessor
+        - name: mcpPing
+            type: io.dscope.camel.mcp.processor.McpPingProcessor
+        - name: mcpToolsList
+            type: io.dscope.camel.mcp.processor.McpToolsListProcessor
+        - name: mcpStream
+            type: io.dscope.camel.mcp.processor.McpStreamProcessor
+            - name: mcpHealthStatus
+                type: io.dscope.camel.mcp.processor.McpHealthStatusProcessor
 - from:
-        uri: rest:post:/mcp?consumerComponentName=netty-http
-        steps:
-            - process: ref:mcpRequestSizeGuard
-            - process: ref:mcpRateLimit
-            - process: ref:mcpHttpValidator
-            - process: ref:mcpJsonRpcEnvelope
-            - choice:
-                    when:
-                        - simple: "${exchangeProperty.mcp.jsonrpc.method} == 'tools/list'"
-                            steps:
-                                - process: ref:mcpToolsList
-                                - to: direct:mcp-complete
-                        - simple: "${exchangeProperty.mcp.jsonrpc.method} == 'tools/call'"
-                            steps:
-                                - process: ref:mcpSnowflakeRequest
-                                - to: direct:mcp-snowflake-exec
+                uri: rest:post:/mcp?consumerComponentName=netty-http
+                steps:
+                        - process: ref:mcpRequestSizeGuard
+                        - process: ref:mcpRateLimit
+                        - process: ref:mcpHttpValidator
+                        - process: ref:mcpJsonRpcEnvelope
+                        - choice:
+                                        when:
+                                                - simple: "${exchangeProperty.mcp.jsonrpc.method} == 'tools/list'"
+                                                        steps:
+                                                                - process: ref:mcpToolsList
+                                                                - to: direct:mcp-complete
+                                                - simple: "${exchangeProperty.mcp.jsonrpc.method} == 'tools/call'"
+                                                        steps:
+                                                                - process: ref:mcpSnowflakeRequest
+                                                                - to: direct:mcp-snowflake-exec
 ```
 
 ### Quick Start Sample
@@ -351,7 +363,7 @@ Because the beans are annotated with `@BindToRegistry`, they are auto-discovered
          -Dsnowflake.warehouse=$SNOWFLAKE_WAREHOUSE \
          -Dsnowflake.role=$SNOWFLAKE_ROLE \
          -Dorg.slf4j.simpleLogger.defaultLogLevel=debug \
-         -jar samples/mcp-snowflake-yaml/target/mcp-snowflake-yaml-1.2.0-shaded.jar
+    -jar samples/mcp-snowflake-yaml/target/mcp-snowflake-yaml-1.3.0-shaded.jar
      ```
 5. Issue MCP-compliant JSON-RPC requests (aliases in `samples/mcp-snowflake-yaml/shell-aliases.zsh`):
      ```bash
@@ -405,11 +417,23 @@ Field reference:
 
 - `methods` &rarr; top-level array; each entry must have a unique, non-blank `name`.
 - `title`, `description` &rarr; surfaced to clients when listing tools.
-- `query` &rarr; default SQL executed when `tools/call` is invoked; can include `:#param` placeholders that bind against headers/body arguments.
 - `enableParameterBinding` (default `true`) &rarr; toggles Camel named-parameter binding; set `false` if you need driver-side templating instead.
 - `requiredArguments` &rarr; list of argument names the MCP client must supply; enforced before executing the query.
 - `inputSchema`, `outputSchema` &rarr; JSON Schema fragments returned to clients so they know how to shape arguments/results.
 - `annotations` &rarr; arbitrary metadata (category, tags, etc.) passed through the MCP responses.
+
+Define SQL templates per tool on the `mcpSnowflakeRequest` bean via the YAML route `parameters` or externalised properties. The sample stores them in `application.properties` using keys such as:
+
+```properties
+mcp.snowflake.queries.selectSample=SELECT * FROM SOME_TABLE WHERE USER_ID = :#user_id
+mcp.snowflake.queries.insertSample=INSERT INTO SOME_TABLE (USER_ID, AMOUNT, DETAILS) VALUES (:#user_id, :#amount, :#details)
+```
+
+The route then injects them with a `bean:` URI so the YAML DSL stays portable:
+
+```yaml
+- to: 'bean:mcpSnowflakeRequest?method=process&enableParameterBinding={{mcp.snowflake.enableParameterBinding}}&queries[selectSample]=RAW({{mcp.snowflake.queries.selectSample}})&queries[insertSample]=RAW({{mcp.snowflake.queries.insertSample}})'
+```
 
 Place your custom `methods.yaml` on the application classpath (default: `classpath:mcp/methods.yaml`). The file is hot-loaded during startup; restart the application after edits so the catalog refreshes.
 

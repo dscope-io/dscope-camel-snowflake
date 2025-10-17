@@ -1,25 +1,22 @@
 # Camel Snowflake Sample — MCP over HTTP (YAML)
 
-This sample demonstrates exposing Snowflake queries through a minimal Model Context Protocol (MCP)-style HTTP endpoint using the custom `snowflake:` Camel component and the MCP processors registered in the component module (e.g. `mcpJsonRpcEnvelope`, `mcpHttpValidator`, `mcpSnowflakeRequest`, `mcpSnowflakeResponse`, `mcpSnowflakeError`, `mcpToolsList`).
+This sample demonstrates exposing Snowflake queries through a minimal Model Context Protocol (MCP)-style HTTP endpoint using the custom `snowflake:` Camel component. It combines the Snowflake-specific MCP beans that ship with the component (`mcpSnowflakeRequest`, `mcpSnowflakeResponse`) with the shared processors provided by the `camel-mcp` library (e.g. `McpJsonRpcEnvelopeProcessor`, `McpHttpValidatorProcessor`, `McpInitializeProcessor`). Tool metadata is loaded through the shared `io.dscope.camel.mcp.catalog.McpMethodCatalog` utility.
 
 ## What it provides
 - An HTTP endpoint (`/mcp`) that accepts JSON-RPC 2.0 style MCP tool requests
 - Tool discovery via `tools/list`
-- Tool invocation via `tools/call` with multiple tools:
+- Tool invocation via `tools/call` with multiple tools using preconfigured SQL templates (requests only supply parameters):
   - `selectSample` (SELECT with bound parameters)
   - `insertSample` (INSERT with bound parameters)
-- Error responses wrapped in JSON-RPC error envelopes
 - Protocol version negotiation headers (basic) handled by `mcpHttpValidator`
 - Server-Sent Events stream at `/mcp/stream` for MCP stream transport handshakes
+- Optional WebSocket entrypoint at `ws://localhost:8090/mcp` with matching tool handlers and a notification broadcast helper
 - Basic request protection:
   - Size guard (default 32 KiB, configure with `-Dmcp.maxRequestBytes=65536`)
   - Fixed-window rate limiting (default 50 req/sec, configure with `-Dmcp.rate.maxRequests` & `-Dmcp.rate.windowMillis`)
   - Simple health endpoint at `/mcp/health`
 
-The sample reuses the demo query pattern from the other dynamic samples:
-```sql
-SELECT * FROM YOUR_DB.PUBLIC.SOME_TABLE WHERE USER_ID = :#user_id AND CREATED_AT >= :#min_date
-```
+The sample reuses the demo query pattern from the other dynamic samples. SQL templates live in `application.properties` under `mcp.snowflake.queries.*` and are passed to `mcpSnowflakeRequest` using URI parameters on the `bean:` endpoint inside the YAML routes. This keeps the bindings visible in one place while remaining compatible with Camel’s YAML DSL.
 
 ## Prerequisites
 - Java 17 or newer on your `PATH`
@@ -63,7 +60,7 @@ java \
   -Dsnowflake.schema=PUBLIC \
   -Dsnowflake.warehouse=COMPUTE_WH \
   -Dsnowflake.role=ACCOUNTADMIN \
-  -jar target/mcp-snowflake-yaml-1.2.0.jar
+  -jar target/mcp-snowflake-yaml-1.3.0.jar
 ```
 
 Once running it will bind (by default) to `http://0.0.0.0:8080/mcp`.
@@ -88,6 +85,7 @@ Key behaviour:
 
 ### Adjusting server behaviour
 - Override the listen port with `-Dmcp.server.port=9090` (see `routes/mcp-snowflake.yaml`).
+- Change the WebSocket listener port with `-Dmcp.ws.port=9090` (see `routes/mcp-snowflake-ws.yaml`).
 - Tune the rate limiter and payload guard: `-Dmcp.rate.maxRequests=100`, `-Dmcp.rate.windowMillis=1000`, `-Dmcp.maxRequestBytes=131072`.
 - Enable verbose logs by adding `-Dlogging.level.io.dscope.camel.snowflake.mcp=DEBUG`.
 
@@ -97,7 +95,7 @@ curl -Ns http://localhost:8080/mcp/stream \
   -H 'Accept: text/event-stream'
 ```
 
-The sample currently emits an initial heartbeat event so MCP clients can keep the connection open. Extend `McpStreamProcessor` if you need periodic heartbeats or to forward Snowflake-derived notifications.
+The shared `McpStreamProcessor` emits an initial `:ok` heartbeat so MCP clients can keep the connection open. Extend it if you need periodic heartbeats or to forward Snowflake-derived notifications.
 
 ### List tools
 ```bash
@@ -320,7 +318,10 @@ You can override Snowflake connection/auth properties per call inside the `conne
   "method": "tools/call",
   "params": {
     "name": "selectSample",
-    "arguments": {"user_id": 7, "min_date": "1970-01-01"},
+    "arguments": {
+      "user_id": 7,
+      "min_date": "1970-01-01"
+    },
     "connection": {
       "warehouse": "COMPUTE_WH",
       "role": "ACCOUNTADMIN",
@@ -355,6 +356,36 @@ Example response snippet:
   }
 }
 ```
+### WebSocket endpoint
+The sample also exposes matching MCP processors over WebSockets.
+
+- Endpoint: `ws://localhost:8090/mcp` (override via `-Dmcp.ws.port=9090`)
+- Implements the same MCP methods as the HTTP route (`initialize`, `ping`, `tools/list`, `tools/call`)
+- Ignores JSON-RPC notifications (no response) but you can fan out server events through `POST /mcp/notifications`
+
+Try it with [`wscat`](https://www.npmjs.com/package/wscat):
+
+```bash
+npx wscat -c ws://localhost:8090/mcp
+# Request tool metadata
+> {"jsonrpc":"2.0","id":"ws-tools","method":"tools/list","params":{}}
+< {"jsonrpc":"2.0","id":"ws-tools","result":{...}}
+
+# Execute selectSample with bound parameters
+> {"jsonrpc":"2.0","id":"ws-call","method":"tools/call","params":{"name":"selectSample","arguments":{"user_id":7,"min_date":"1970-01-01"}}}
+< {"jsonrpc":"2.0","id":"ws-call","result":{...}}
+```
+
+Broadcast a notification to every connected WebSocket client:
+
+```bash
+curl -s -X POST http://localhost:8090/mcp/notifications \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","method":"notifications/publish","params":{"message":"Snowflake job complete"}}'
+```
+
+The helper route forwards the payload as-is; structure your message according to the client expectations.
+
 ### Health
 ```bash
 curl -s http://localhost:8080/mcp/health | jq
@@ -370,16 +401,17 @@ src/main/resources/
 ├── mcp/
 │   └── methods.yaml         # Tool catalogue consumed by McpMethodCatalog
 └── routes/
-  └── mcp-snowflake.yaml   # Camel YAML dsl wiring the MCP processors
+    ├── mcp-snowflake.yaml     # HTTP + SSE routing
+    └── mcp-snowflake-ws.yaml  # WebSocket routing and notification helper
 ```
 
 ### Editing `methods.yaml`
+- Callers provide SQL text per invocation via the `query` argument; the YAML catalog now focuses on metadata, validation, and documentation.
 - `name`: Unique identifier surfaced to MCP clients (`tools/call` → `params.name`).
 - `title`/`description`: Friendly metadata returned by `tools/list`.
-- `query`: The SQL executed by the Snowflake endpoint. Use Camel simple placeholders (`:#arg`) to opt into parameter binding.
 - `enableParameterBinding`: When `true`, arguments are bound safely instead of concatenated.
-- `requiredArguments`: Hard guard enforced before execution.
-- `inputSchema`/`outputSchema`: JSON Schema fragments echoed in discovery responses and used for validation.
+- `requiredArguments`: Hard guard enforced before execution. Include `query` if the tool always expects callers to send SQL text.
+- `inputSchema`/`outputSchema`: JSON Schema fragments echoed in discovery responses and used for validation. Document the `query` property so UI clients can prompt for SQL.
 - `annotations`: Arbitrary map for categorisation/labels.
 
 Add new tools by appending entries to the `methods:` array. Each entry can also include optional keys:
@@ -397,7 +429,7 @@ After editing YAML, rebuild the sample JAR to pick up the changes: `mvn -q -Dski
 3. Invoke `tools/call` with sample arguments; if validation fails you’ll get a `-32602` JSON-RPC error citing the missing fields.
 
 ### Route overview
-The Camel route in `routes/mcp-snowflake.yaml` wires incoming HTTP requests through the MCP processors:
+The Camel route in `routes/mcp-snowflake.yaml` wires incoming HTTP requests through the shared `camel-mcp` processors and the Snowflake-specific beans:
 
 1. `mcpRequestSizeGuard` and `mcpRateLimit` enforce basic protections.
 2. `mcpHttpValidator` checks headers and protocol negotiation.

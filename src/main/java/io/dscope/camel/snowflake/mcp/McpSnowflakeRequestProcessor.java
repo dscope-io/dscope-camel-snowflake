@@ -6,22 +6,33 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apache.camel.BindToRegistry;
 import org.apache.camel.Exchange;
-import org.apache.camel.Processor;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.dscope.camel.mcp.catalog.McpMethodCatalog;
+import io.dscope.camel.mcp.catalog.McpMethodDefinition;
 import io.dscope.camel.snowflake.SnowflakeConstants;
+import io.dscope.camel.mcp.processor.AbstractMcpRequestProcessor;
 
 @BindToRegistry("mcpSnowflakeRequest")
-public class McpSnowflakeRequestProcessor implements Processor {
+public class McpSnowflakeRequestProcessor extends AbstractMcpRequestProcessor {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+    private static final Set<String> RESERVED_PARAMETER_KEYS = Set.of(
+        "query",
+        "connection",
+        "enableparameterbinding");
+
     private final McpMethodCatalog methodCatalog;
+    private final Map<String, String> queries = new LinkedHashMap<>();
+    private String query;
+    private Boolean defaultEnableParameterBinding = Boolean.TRUE;
 
     public McpSnowflakeRequestProcessor() {
         this(new McpMethodCatalog());
@@ -32,40 +43,46 @@ public class McpSnowflakeRequestProcessor implements Processor {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public void process(Exchange exchange) throws Exception {
-        if (exchange == null) {
-            throw new IllegalArgumentException("Exchange must not be null");
-        }
+    protected void handleRequest(Exchange exchange, Map<String, Object> payload) throws Exception {
+        String toolName = getToolName(exchange);
+        McpMethodDefinition methodDefinition = methodCatalog.findByName(toolName)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown tool: " + toolName));
+        exchange.setProperty("mcp.method.definition", methodDefinition);
 
-    String toolName = exchange.getProperty(McpJsonRpcEnvelopeProcessor.EXCHANGE_PROPERTY_TOOL_NAME, String.class);
-    McpMethodDefinition methodDefinition = methodCatalog.findByName(toolName)
-        .orElseThrow(() -> new IllegalArgumentException("Unknown tool: " + toolName));
-    exchange.setProperty("mcp.method.definition", methodDefinition);
-
-        Map<String, Object> payload = exchange.getIn().getBody(Map.class);
         if (payload == null) {
             throw new IllegalArgumentException("Tool arguments must be a JSON object");
         }
 
-    exchange.getIn().setHeader(SnowflakeConstants.HEADER_QUERY, methodDefinition.getQuery());
+        String resolvedQuery = resolveConfiguredQuery(methodDefinition.getName());
+        if (resolvedQuery == null || resolvedQuery.isBlank()) {
+            throw new IllegalStateException("No query configured for tool: " + methodDefinition.getName());
+        }
+        exchange.getIn().setHeader(SnowflakeConstants.HEADER_QUERY, resolvedQuery);
 
-    boolean enableBinding = resolveBoolean(payload.get("enableParameterBinding"), methodDefinition.isEnableParameterBinding());
+        boolean enableBinding = resolveBoolean(payload.get("enableParameterBinding"),
+            defaultEnableParameterBinding == null ? true : defaultEnableParameterBinding);
         exchange.getIn().setHeader(SnowflakeConstants.HEADER_ENABLE_PARAMETER_BINDING, enableBinding);
 
-    Map<String, Object> parameterSnapshot = new LinkedHashMap<>();
-    Object parametersNode = Optional.ofNullable(payload.get("parameters"))
-        .orElseGet(() -> Optional.ofNullable(payload.get("arguments"))
-            .orElse(payload));
+        Map<String, Object> parameterSnapshot = new LinkedHashMap<>();
+        Object parametersNode = Optional.ofNullable(payload.get("parameters"))
+                .orElseGet(() -> Optional.ofNullable(payload.get("arguments"))
+                        .orElse(payload));
         if (parametersNode instanceof Map<?, ?> parameterMap) {
             for (Map.Entry<?, ?> entry : parameterMap.entrySet()) {
                 String key = entry.getKey() == null ? null : entry.getKey().toString();
-                if (key == null || key.isBlank()) {
+                if (key == null) {
+                    continue;
+                }
+                String trimmedKey = key.trim();
+                if (trimmedKey.isEmpty()) {
+                    continue;
+                }
+                if (isReservedParameterKey(trimmedKey)) {
                     continue;
                 }
                 Object sanitized = sanitizeParameterValue(entry.getValue());
-                parameterSnapshot.put(key, sanitized);
-                exchange.getIn().setHeader("snowflake." + key, sanitized);
+                parameterSnapshot.put(trimmedKey, sanitized);
+                exchange.getIn().setHeader("snowflake." + trimmedKey, sanitized);
             }
         }
 
@@ -92,15 +109,74 @@ public class McpSnowflakeRequestProcessor implements Processor {
         }
 
         Map<String, Object> requestSnapshot = new LinkedHashMap<>();
-        requestSnapshot.put("tool", methodDefinition.getName());
-        requestSnapshot.put("query", methodDefinition.getQuery());
+    requestSnapshot.put("tool", methodDefinition.getName());
+    requestSnapshot.put("query", resolvedQuery);
         requestSnapshot.put("enableParameterBinding", enableBinding);
-    requestSnapshot.put("parameters", parameterSnapshot);
+        requestSnapshot.put("parameters", parameterSnapshot);
         if (!connectionSnapshot.isEmpty()) {
             requestSnapshot.put("connection", connectionSnapshot);
         }
         validateRequiredArguments(methodDefinition, parameterSnapshot);
         exchange.setProperty("mcp.snowflake.request", requestSnapshot);
+    }
+
+    public Map<String, String> getQueries() {
+        return queries;
+    }
+
+    public void setQueries(Map<String, String> queries) {
+        this.queries.clear();
+        if (queries != null) {
+            queries.forEach((key, value) -> {
+                if (key == null || value == null) {
+                    return;
+                }
+                String trimmedKey = key.trim();
+                String trimmedValue = value.trim();
+                if (trimmedKey.isEmpty() || trimmedValue.isEmpty()) {
+                    return;
+                }
+                this.queries.put(trimmedKey, trimmedValue);
+            });
+        }
+    }
+
+    public String getQuery() {
+        return query;
+    }
+
+    public void setQuery(String query) {
+        if (query == null) {
+            this.query = null;
+            return;
+        }
+        String trimmed = query.trim();
+        this.query = trimmed.isEmpty() ? null : trimmed;
+    }
+
+    public Boolean getEnableParameterBinding() {
+        return defaultEnableParameterBinding;
+    }
+
+    public void setEnableParameterBinding(Boolean enableParameterBinding) {
+        this.defaultEnableParameterBinding = enableParameterBinding;
+    }
+
+    private String resolveConfiguredQuery(String methodName) {
+        String configured = null;
+        if (methodName != null) {
+            configured = queries.get(methodName);
+            if (configured != null) {
+                configured = configured.trim();
+                if (configured.isEmpty()) {
+                    configured = null;
+                }
+            }
+        }
+        if (configured == null) {
+            configured = query;
+        }
+        return configured;
     }
 
     private void validateRequiredArguments(McpMethodDefinition definition, Map<String, Object> provided) {
@@ -109,11 +185,24 @@ public class McpSnowflakeRequestProcessor implements Processor {
             return;
         }
         List<String> missing = required.stream()
-                .filter(name -> !provided.containsKey(name) || provided.get(name) == null || provided.get(name).toString().isBlank())
+                .filter(name -> isMissingRequired(name, provided))
                 .toList();
         if (!missing.isEmpty()) {
             throw new IllegalArgumentException("Missing required argument(s): " + String.join(", ", missing));
         }
+    }
+
+    private boolean isMissingRequired(String name, Map<String, Object> provided) {
+        Object value = provided.get(name);
+        return value == null || value.toString().isBlank();
+    }
+
+    private boolean isReservedParameterKey(String key) {
+        if (key == null) {
+            return false;
+        }
+        String normalized = key.trim().toLowerCase();
+        return RESERVED_PARAMETER_KEYS.contains(normalized);
     }
 
     private void applyConnectionOverrides(Exchange exchange, Map<String, Object> accumulator, Map<?, ?> source) {
