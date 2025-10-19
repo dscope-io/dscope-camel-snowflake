@@ -23,6 +23,16 @@ jobs:
           java-version: 21
           cache: maven
 
+      - name: Checkout camel-mcp dependency
+        uses: actions/checkout@v4
+        with:
+          repository: dscope-io/dscope-camel-mcp
+          path: camel-mcp
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & install camel-mcp into local Maven repo
+        run: mvn -B -f camel-mcp/pom.xml -DskipTests install
+
       - name: Maven - Build & Unit Tests
         run: mvn -B -q clean verify
 
@@ -48,6 +58,16 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: maven
+
+      - name: Checkout camel-mcp dependency
+        uses: actions/checkout@v4
+        with:
+          repository: dscope-io/dscope-camel-mcp
+          path: camel-mcp
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & install camel-mcp into local Maven repo
+        run: mvn -B -f camel-mcp/pom.xml -DskipTests install
 
       - name: Build (No Tests) for Release
         run: mvn -B -q -DskipTests package
