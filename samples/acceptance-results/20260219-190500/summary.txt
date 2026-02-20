@@ -1,0 +1,17 @@
+Acceptance Summary
+Run ID: 20260219-190500
+Mode: full
+Output Directory: /Users/roman/Projects/DScope/CamelSnowflakeComponent/samples/acceptance-results/20260219-190500
+
+AT-01-BUILD  PASS
+AT-02-BUILD  PASS
+AT-03-BUILD  PASS
+AT-04-BUILD  PASS
+AT-05-BUILD  PASS
+AT-06-BUILD  PASS
+AT-01-RUN    PASS
+AT-02-RUN    PASS
+AT-03-RUN    PASS
+AT-04-RUN    PASS
+AT-05-RUN    PASS
+AT-06-RUN    FAIL

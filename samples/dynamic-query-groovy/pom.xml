@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.dscope.camel.samples</groupId>
     <artifactId>dynamic-query-groovy</artifactId>
-    <version>1.3.0</version>
+    <version>1.4.0</version>
     <name>Camel Snowflake Sample - Dynamic Query (Groovy DSL)</name>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -13,11 +13,11 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <camel.version>4.15.0</camel.version>
         <!-- Use the released component version -->
-    <snowflake.component.version>1.3.0</snowflake.component.version>
+    <snowflake.component.version>1.4.0</snowflake.component.version>
         <snowflake.jdbc.version>3.26.1</snowflake.jdbc.version>
         <hikaricp.version>5.1.0</hikaricp.version>
         <jackson.version>2.17.2</jackson.version>
-        <slf4j.version>2.0.13</slf4j.version>
+        <slf4j.version>2.0.17</slf4j.version>
         <groovy.version>3.0.21</groovy.version>
     </properties>
 

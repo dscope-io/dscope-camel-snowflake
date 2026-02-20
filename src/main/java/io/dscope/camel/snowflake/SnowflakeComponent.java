@@ -20,6 +20,7 @@ package io.dscope.camel.snowflake;
 import java.util.Map;
 
 import org.apache.camel.Endpoint;
+import org.apache.camel.spi.annotations.Component;
 import org.apache.camel.support.DefaultComponent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +28,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Represents the component that manages {@link SnowflakeEndpoint}.
  */
+@Component("snowflake")
 public class SnowflakeComponent extends DefaultComponent {
     
     private static final Logger LOG = LoggerFactory.getLogger(SnowflakeComponent.class);
@@ -36,6 +38,7 @@ public class SnowflakeComponent extends DefaultComponent {
         LOG.debug("Creating Snowflake endpoint with URI: {}", uri);
         
         SnowflakeEndpoint endpoint = new SnowflakeEndpoint(uri, this);
+        endpoint.setName(remaining);
         SnowflakeConfiguration configuration = new SnowflakeConfiguration();
         
         // Set the configuration on the endpoint

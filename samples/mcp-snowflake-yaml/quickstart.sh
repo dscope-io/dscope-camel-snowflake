@@ -95,7 +95,7 @@ fi
 
 app_port="${SNOWFLAKE_APP_PORT:-8080}"
 authenticator="${SNOWFLAKE_AUTHENTICATOR:-snowflake_jwt}"
-jar_path="${PROJECT_ROOT}/target/mcp-snowflake-yaml-1.3.0.jar"
+jar_path="${PROJECT_ROOT}/target/mcp-snowflake-yaml-1.4.0.jar"
 if [[ ! -f "$jar_path" ]]; then
   echo "JAR not found at $jar_path. Run Maven build first or omit --no-build." >&2
   exit 1

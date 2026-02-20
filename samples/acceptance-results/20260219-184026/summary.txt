@@ -1,0 +1,11 @@
+Acceptance Summary
+Run ID: 20260219-184026
+Mode: build-only
+Output Directory: /Users/roman/Projects/DScope/CamelSnowflakeComponent/samples/acceptance-results/20260219-184026
+
+AT-01-BUILD  PASS
+AT-02-BUILD  PASS
+AT-03-BUILD  PASS
+AT-04-BUILD  PASS
+AT-05-BUILD  PASS
+AT-06-BUILD  PASS

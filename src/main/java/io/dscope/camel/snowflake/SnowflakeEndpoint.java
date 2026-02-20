@@ -17,18 +17,23 @@
 
 package io.dscope.camel.snowflake;
 
+import org.apache.camel.Category;
 import org.apache.camel.Consumer;
 import org.apache.camel.Processor;
 import org.apache.camel.Producer;
 import org.apache.camel.spi.UriEndpoint;
 import org.apache.camel.spi.UriParam;
+import org.apache.camel.spi.UriPath;
 import org.apache.camel.support.DefaultEndpoint;
 
 /**
  * Snowflake endpoint for connecting to Snowflake data warehouse.
  */
-@UriEndpoint(firstVersion = "1.0.0", scheme = "snowflake", title = "Snowflake", syntax = "snowflake:name")
+@UriEndpoint(firstVersion = "1.0.0", scheme = "snowflake", title = "Snowflake", syntax = "snowflake:name", category = { Category.DATABASE })
 public class SnowflakeEndpoint extends DefaultEndpoint {
+
+    @UriPath(description = "Logical endpoint name")
+    private String name;
 
     @UriParam
     private SnowflakeConfiguration configuration;
@@ -119,6 +124,14 @@ public class SnowflakeEndpoint extends DefaultEndpoint {
 
     public SnowflakeConfiguration getConfiguration() {
         return configuration;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public void setConfiguration(SnowflakeConfiguration configuration) {

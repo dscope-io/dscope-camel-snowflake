@@ -6,18 +6,18 @@
   <parent>
     <groupId>io.dscope.camel.samples</groupId>
     <artifactId>samples-aggregator</artifactId>
-  <version>1.3.0</version>
+  <version>1.4.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>mcp-snowflake-yaml</artifactId>
   <name>Camel Snowflake Sample — MCP Snowflake (YAML)</name>
   <description>Expose Snowflake queries via Model Context Protocol style HTTP endpoint using Camel YAML DSL</description>
   <properties>
-      <camel.version>4.15.0</camel.version>
-    <slf4j.version>2.0.13</slf4j.version>
+    <camel.version>4.15.0</camel.version>
+    <slf4j.version>2.0.17</slf4j.version>
     <snowflake.jdbc.version>3.26.1</snowflake.jdbc.version>
     <hikaricp.version>5.1.0</hikaricp.version>
-    <camel.mcp.version>1.0.0</camel.mcp.version>
+    <camel.mcp.version>1.3.0</camel.mcp.version>
     <camel.main.routes-include-pattern>classpath:routes/*.yaml</camel.main.routes-include-pattern>
     <exec.mainClass>io.dscope.camel.snowflake.sample.RunOnce</exec.mainClass>
   </properties>
