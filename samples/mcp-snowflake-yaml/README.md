@@ -16,10 +16,10 @@ This sample demonstrates exposing Snowflake queries through a minimal Model Cont
   - Fixed-window rate limiting (default 50 req/sec, configure with `-Dmcp.rate.maxRequests` & `-Dmcp.rate.windowMillis`)
   - Simple health endpoint at `/mcp/health`
 
-The sample reuses the demo query pattern from the other dynamic samples. SQL templates live in `application.properties` under `mcp.snowflake.queries.*` and are passed to `mcpSnowflakeRequest` using URI parameters on the `bean:` endpoint inside the YAML routes. This keeps the bindings visible in one place while remaining compatible with Camel’s YAML DSL.
+The sample reuses the demo query pattern from the other dynamic samples. SQL templates live in `application.properties` under `mcp.snowflake.queries.*` and are injected into `mcpSnowflakeRequest` via route bean properties. This keeps the bindings visible in one place while remaining compatible with Camel’s YAML DSL.
 
 ## Prerequisites
-- Java 17 or newer on your `PATH`
+- Java 21 or newer on your `PATH`
 - Apache Maven 3.9+
 - A Snowflake account with a warehouse, database, schema, and role you can target
 - A service user with either asymmetric key authentication (recommended) or OAuth/session token access
@@ -60,7 +60,7 @@ java \
   -Dsnowflake.schema=PUBLIC \
   -Dsnowflake.warehouse=COMPUTE_WH \
   -Dsnowflake.role=ACCOUNTADMIN \
-  -jar target/mcp-snowflake-yaml-1.4.0.jar
+  -jar target/mcp-snowflake-yaml-1.4.0-shaded.jar
 ```
 
 Once running it will bind (by default) to `http://0.0.0.0:8080/mcp`.
@@ -81,7 +81,7 @@ Key behaviour:
 ### Alternative authentication flows
 - **Inline private key string**: replace `-Dsnowflake.privateKeyFile=…` with `-Dsnowflake.privateKey="$(cat key.pem | awk 'NF {sub(/\r$/, ""); printf "%s\\n", $0}')"`. Remember to escape newlines as `\n`.
 - **Password + authenticator**: supply `-Dsnowflake.authenticator=snowflake` and add `-Dsnowflake.password=…` (only for testing; prefer key or OAuth).
-- **OAuth bearer**: set `-Dsnowflake.oauthToken=…` and change `snowflake.authenticator=oauth`.
+- **OAuth bearer**: set `-Dsnowflake.token=…` and change `snowflake.authenticator=oauth`.
 
 ### Adjusting server behaviour
 - Override the listen port with `-Dmcp.server.port=9090` (see `routes/mcp-snowflake.yaml`).
@@ -392,7 +392,7 @@ curl -s http://localhost:8080/mcp/health | jq
 ```
 
 ## Tool definitions
-Tool metadata comes from an internal YAML (`mcp/methods.yaml`) expected on the classpath by `McpMethodCatalog`. For this sample we provide a minimal copy under `src/main/resources/mcp/methods.yaml`.
+Tool metadata comes from YAML (`mcp/methods.yaml`) expected on the classpath by `McpMethodCatalog`. For this sample we provide it under `src/main/resources/mcp/methods.yaml`.
 
 ### Layout refresher
 ```text
@@ -406,20 +406,15 @@ src/main/resources/
 ```
 
 ### Editing `methods.yaml`
-- Callers provide SQL text per invocation via the `query` argument; the YAML catalog now focuses on metadata, validation, and documentation.
 - `name`: Unique identifier surfaced to MCP clients (`tools/call` → `params.name`).
 - `title`/`description`: Friendly metadata returned by `tools/list`.
-- `enableParameterBinding`: When `true`, arguments are bound safely instead of concatenated.
-- `requiredArguments`: Hard guard enforced before execution. Include `query` if the tool always expects callers to send SQL text.
-- `inputSchema`/`outputSchema`: JSON Schema fragments echoed in discovery responses and used for validation. Document the `query` property so UI clients can prompt for SQL.
+- `requiredArguments`: Hard guard enforced before execution.
+- `inputSchema`/`outputSchema`: JSON Schema fragments echoed in discovery responses and used for validation.
 - `annotations`: Arbitrary map for categorisation/labels.
 
-Add new tools by appending entries to the `methods:` array. Each entry can also include optional keys:
+Add new tools by appending entries to the `methods:` array.
 
-- `connectionOverrides`: Default Snowflake properties (e.g. `warehouse`, `role`) applied if the caller omits them.
-- `allowedOverrides`: Restrict which connection fields a caller may change (`["warehouse", "role"]`).
-- `outputFormat`: Overrides the component default (`json`, `jsonl`, `table`, `stream`).
-- `maxRows`: Cap the number of rows returned for `SELECT` queries.
+SQL execution templates are configured separately in `application.properties` (`mcp.snowflake.queries.<toolName>`) and injected into `mcpSnowflakeRequest` via route bean properties.
 
 After editing YAML, rebuild the sample JAR to pick up the changes: `mvn -q -DskipTests package`.
 

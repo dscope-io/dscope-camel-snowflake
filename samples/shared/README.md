@@ -1,10 +1,12 @@
-Shared assets for all samples
+# Shared Sample Assets
 
+## Contents
 - scripts/ — helper zsh scripts (key generation and utilities)
 - keys/ — local key material (do not commit real keys)
 - snowflake/ — shared Snowflake SQL (DDL/seed)
 
-Usage examples (from repo root):
+## Usage Examples
+From repo root:
 - Generate a private key:
   samples/shared/scripts/generate-private-key.zsh
 - Generate a public key from private:

@@ -1,4 +1,4 @@
-# Sample Query Usage - Practical Examples
+# Sample Query Usage — Practical Examples
 
 ## ✅ Your Query Working Dynamically!
 

@@ -24,16 +24,16 @@ Provide Snowflake credentials via JVM `-D` properties using the `snowflake.*` na
 Example using JVM properties:
 ```bash
 mvn -q spring-boot:run \
-	-Dspring-boot.run.jvmArguments="\
-		-Dsnowflake.account=your_account \
-		-Dsnowflake.username=your_user \
-		-Dsnowflake.privateKeyFile=/abs/path/private_key_pkcs8.pem \
-		-Dsnowflake.database=SAMPLES \
-		-Dsnowflake.schema=PUBLIC \
-		-Dsnowflake.warehouse=DATAFEED_WH \
-		-Dsnowflake.role=sample_role \
-		-Dcamel.main.durationMaxSeconds=20 \
-		-Dcamel.main.durationHitExitCode=0"
+  -Dspring-boot.run.jvmArguments="\
+    -Dsnowflake.account=your_account \
+    -Dsnowflake.username=your_user \
+    -Dsnowflake.privateKeyFile=/abs/path/private_key_pkcs8.pem \
+    -Dsnowflake.database=SAMPLES \
+    -Dsnowflake.schema=PUBLIC \
+    -Dsnowflake.warehouse=DATAFEED_WH \
+    -Dsnowflake.role=sample_role \
+    -Dcamel.main.durationMaxSeconds=20 \
+    -Dcamel.main.durationHitExitCode=0"
 ```
 
 Or export environment variables in lowercase with dots replaced by underscores (Spring Boot relaxed binding supports both):
@@ -46,6 +46,6 @@ mvn -q spring-boot:run
 
 On startup a simple timer route runs one query and logs the result.
 
-Notes
+## Notes
 - For key-pair auth, prefer `-Dsnowflake.privateKeyFile=/abs/path/private_key_pkcs8.pem` (PEM or DER). The component will set `authenticator=snowflake_jwt` automatically when a private key is supplied unless you override it.
 - Do not duplicate location properties across different channels. Database/schema/warehouse/role are included in the JDBC URL. Avoid also passing them as DataSource or `snowflake.jdbc.*` properties to prevent the Snowflake driver error: "Connection property specified more than once: DB".

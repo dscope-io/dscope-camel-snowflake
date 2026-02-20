@@ -29,6 +29,6 @@ mvn -q -DskipTests \
 
 Or run the shaded jar and send a message to `direct:snowflakeQuery` from your own code.
 
-Notes:
+## Notes
 - Prefer `snowflake.privateKeyFile` for key‑pair auth; the component will use SNOWFLAKE_JWT authenticator automatically.
 - Do not duplicate DB/SCHEMA/WAREHOUSE/ROLE outside the JDBC URL.

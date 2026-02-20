@@ -7,16 +7,14 @@
 
 A comprehensive Apache Camel component for integrating with Snowflake Data Warehouse, featuring enterprise-grade connection pooling, extensive tests, and production-ready JDBC operations.
 
-## 📦 Versions
-Production users should depend on the latest released version; the snapshot build exposes in‑progress features.
+## 🔢 Tested Stack
+Production users should depend on the latest released version; local source builds track the current main branch state.
 
 | Channel | Version | Maven Coordinates | Notes |
 |---------|---------|-------------------|-------|
-| Latest Release | 1.3.0 | `io.dscope.camel:camel-snowflake:1.3.0` | Stable, recommended for production |
-| Previous Release | 1.2.0 | `io.dscope.camel:camel-snowflake:1.2.0` | Prior feature release |
-| Development Snapshot | 1.3.0 | `io.dscope.camel:camel-snowflake:1.3.0` | Build from source (`mvn install`) to stay current with main |
-
-Once 1.4.0 development begins, update the table and dependency snippets accordingly.
+| Latest Release | 1.4.0 | `io.dscope.camel:camel-snowflake:1.4.0` | Stable, recommended for production |
+| Previous Release | 1.3.0 | `io.dscope.camel:camel-snowflake:1.3.0` | Prior feature release |
+| Development Build | 1.4.0 | `io.dscope.camel:camel-snowflake:1.4.0` | Build from source (`mvn install`) to stay current with main |
 
 ## 🛠 Installation
 
@@ -26,7 +24,7 @@ Once 1.4.0 development begins, update the table and dependency snippets accordin
 <dependency>
     <groupId>io.dscope.camel</groupId>
     <artifactId>camel-snowflake</artifactId>
-    <version>1.3.0</version>
+    <version>1.4.0</version>
 </dependency>
 ```
 
@@ -36,7 +34,7 @@ Build and install the project locally first (`mvn clean install` at the repo roo
 <dependency>
     <groupId>io.dscope.camel</groupId>
     <artifactId>camel-snowflake</artifactId>
-    <version>1.3.0</version>
+    <version>1.4.0</version>
 </dependency>
 ```
 
@@ -88,7 +86,7 @@ Current tested versions in this repository:
 <dependency>
     <groupId>io.dscope.camel</groupId>
     <artifactId>camel-snowflake</artifactId>
-    <version>1.3.0</version>
+    <version>1.4.0</version>
 </dependency>
 ```
 
@@ -363,7 +361,7 @@ The remaining MCP processors (JSON-RPC envelope parsing, rate limiting, streamin
          -Dsnowflake.warehouse=$SNOWFLAKE_WAREHOUSE \
          -Dsnowflake.role=$SNOWFLAKE_ROLE \
          -Dorg.slf4j.simpleLogger.defaultLogLevel=debug \
-    -jar samples/mcp-snowflake-yaml/target/mcp-snowflake-yaml-1.3.0-shaded.jar
+    -jar samples/mcp-snowflake-yaml/target/mcp-snowflake-yaml-1.4.0-shaded.jar
      ```
 5. Issue MCP-compliant JSON-RPC requests (aliases in `samples/mcp-snowflake-yaml/shell-aliases.zsh`):
      ```bash
@@ -374,7 +372,7 @@ The remaining MCP processors (JSON-RPC envelope parsing, rate limiting, streamin
          -d '{"jsonrpc":"2.0","id":"req-1","method":"tools/list"}' | jq .
      ```
 
-Add or modify tools in `samples/mcp-snowflake-yaml/src/main/resources/mcp/methods.yaml`; the catalog and processors will automatically pick them up. Responses redact the SQL text and credentials, returning only status metadata and result payloads suitable for MCP clients.
+Add or modify tools in `samples/mcp-snowflake-yaml/src/main/resources/mcp/methods.yaml`; the catalog and processors will automatically pick them up. SQL templates are configured separately via `mcp.snowflake.queries.*` and injected into `mcpSnowflakeRequest` from route bean properties.
 
 ### Defining MCP Tools (`methods.yaml`)
 
@@ -385,9 +383,6 @@ methods:
     - name: selectSample
         title: Select Sample Rows
         description: Human-friendly summary shown to MCP clients
-        query: |
-            SELECT * FROM SOME_TABLE WHERE USER_ID = :#user_id
-        enableParameterBinding: true
         requiredArguments:
             - user_id
             - min_date
@@ -417,25 +412,33 @@ Field reference:
 
 - `methods` &rarr; top-level array; each entry must have a unique, non-blank `name`.
 - `title`, `description` &rarr; surfaced to clients when listing tools.
-- `enableParameterBinding` (default `true`) &rarr; toggles Camel named-parameter binding; set `false` if you need driver-side templating instead.
 - `requiredArguments` &rarr; list of argument names the MCP client must supply; enforced before executing the query.
 - `inputSchema`, `outputSchema` &rarr; JSON Schema fragments returned to clients so they know how to shape arguments/results.
 - `annotations` &rarr; arbitrary metadata (category, tags, etc.) passed through the MCP responses.
 
-Define SQL templates per tool on the `mcpSnowflakeRequest` bean via the YAML route `parameters` or externalised properties. The sample stores them in `application.properties` using keys such as:
+Define SQL templates per tool on the `mcpSnowflakeRequest` bean via route bean property injection and externalised properties. The sample stores them in `application.properties` using keys such as:
 
 ```properties
 mcp.snowflake.queries.selectSample=SELECT * FROM SOME_TABLE WHERE USER_ID = :#user_id
 mcp.snowflake.queries.insertSample=INSERT INTO SOME_TABLE (USER_ID, AMOUNT, DETAILS) VALUES (:#user_id, :#amount, :#details)
 ```
 
-The route then injects them with a `bean:` URI so the YAML DSL stays portable:
+The route then injects them via a map bean so the YAML DSL stays portable:
 
 ```yaml
-- to: 'bean:mcpSnowflakeRequest?method=process&enableParameterBinding={{mcp.snowflake.enableParameterBinding}}&queries[selectSample]=RAW({{mcp.snowflake.queries.selectSample}})&queries[insertSample]=RAW({{mcp.snowflake.queries.insertSample}})'
+- name: mcpSnowflakeQueries
+    type: java.util.LinkedHashMap
+    properties:
+        selectSample: "{{mcp.snowflake.queries.selectSample}}"
+        insertSample: "{{mcp.snowflake.queries.insertSample}}"
+- name: mcpSnowflakeRequest
+    type: io.dscope.camel.snowflake.mcp.McpSnowflakeRequestProcessor
+    properties:
+        queries: '#bean:mcpSnowflakeQueries'
+        enableParameterBinding: "{{mcp.snowflake.enableParameterBinding}}"
 ```
 
-Place your custom `methods.yaml` on the application classpath (default: `classpath:mcp/methods.yaml`). The file is hot-loaded during startup; restart the application after edits so the catalog refreshes.
+Place your custom `methods.yaml` on the application classpath (default: `classpath:mcp/methods.yaml`). For the sample this file is `samples/mcp-snowflake-yaml/src/main/resources/mcp/methods.yaml`.
 
 ### OAuth Authentication (Bearer Token)
 
@@ -454,7 +457,7 @@ Endpoint URI example (Camel):
 snowflake://default?account={{snowflake.account}}&username={{snowflake.username}}&authenticator=oauth&token={{snowflake.token}}
 ```
 
-Notes:
+#### Notes
 - When `authenticator=oauth`, provide `token` and do not set `password` or `privateKey`.
 - Token refresh/rotation is managed externally; pass updated tokens when needed.
 
@@ -708,7 +711,7 @@ Headers always win; endpoint parameters override the original base configuration
 3. System properties (`-Dsnowflake.*`, `-Dsnowflake.jdbc.*`)
 4. Per-message headers (e.g., `CamelSnowflake*`, parameter binding headers)
 
-Notes:
+##### Notes
 - System properties are read lazily by getters, allowing you to inject secrets at launch time without changing routes.
 - For exec:java, pass `-Dsnowflake.*` at Maven CLI level rather than in `-Dexec.jvmArgs`.
 
@@ -737,7 +740,7 @@ from("direct:lookupUser")
     .to("snowflake:lookup?query=SELECT%20NAME%20FROM%20USERS%20WHERE%20ID%20=%20:%23id");
 ```
 
-Notes:
+##### Notes
 - Default `parameterPrefix` is `snowflake.` and can be changed globally via configuration or per message using `CamelSnowflakeParameterPrefix`.
 - Binding also accepts plain `id` or Camel-style `CamelSnowflakeId` if you prefer not to use a prefix.
 

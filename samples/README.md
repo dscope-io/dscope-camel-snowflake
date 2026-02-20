@@ -21,7 +21,7 @@ java -jar target/dynamic-query-yaml-1.4.0.jar
 
 ## Prerequisites
 - JDK 21+
-- Maven 3.8+
+- Maven 3.9+
 - A Snowflake account and role with permissions to create database/schema/table for testing
 - A PKCS#8 RSA private key for key‑pair authentication (stored outside of the repo)
 
@@ -75,18 +75,6 @@ mvn -q -DskipTests package
 - Details: see `samples/dynamic-query-yaml/README.md`
 
 2) spring-boot-snowflake
-3) dynamic-query-java
-- Path: `samples/dynamic-query-java`
-- Java RouteBuilder variant of the YAML sample. See module README for usage.
-
-4) dynamic-query-groovy
-- Path: `samples/dynamic-query-groovy`
-- Groovy RouteBuilder variant (compiled to Java 17 for JDK 21 compatibility). See module README for build/run.
-
-5) dynamic-query-kotlin
-- Path: `samples/dynamic-query-kotlin`
-- Kotlin RouteBuilder variant. Includes camel-bean for Simple/Bean languages. See module README for build/run.
-
 - Path: `samples/spring-boot-snowflake`
 - Highlights:
   - Spring Boot 3.5 application using Camel Spring Boot
@@ -101,7 +89,19 @@ mvn -q -DskipTests package
   export SNOWFLAKE_PRIVATE_KEY_FILE=/abs/path/private_key_pkcs8.pem
   mvn -q spring-boot:run
   ```
- - Details: see `samples/spring-boot-snowflake/README.md`
+- Details: see `samples/spring-boot-snowflake/README.md`
+
+3) dynamic-query-java
+- Path: `samples/dynamic-query-java`
+- Java RouteBuilder variant of the YAML sample. See module README for usage.
+
+4) dynamic-query-groovy
+- Path: `samples/dynamic-query-groovy`
+- Groovy RouteBuilder variant (compiled to Java 17 for JDK 21 compatibility). See module README for build/run.
+
+5) dynamic-query-kotlin
+- Path: `samples/dynamic-query-kotlin`
+- Kotlin RouteBuilder variant. Includes camel-bean for Simple/Bean languages. See module README for build/run.
 
 ## Conventions for new samples
 When adding a new sample, follow this structure:

@@ -26,7 +26,7 @@ mvn -q -DskipTests \
   exec:java@run-once
 ```
 
-Notes:
+## Notes
 - Headers used to parameterize the query: `user_id`, `min_date`. Defaults come from `application.properties`.
 - Includes `camel-bean` to satisfy bean/simple language requirements.
 - Route avoids Simple interpolation clashes by using header() + choice() with Kotlin-safe backticked `when`.

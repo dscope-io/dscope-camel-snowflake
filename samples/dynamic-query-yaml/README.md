@@ -36,14 +36,14 @@ This lets you keep a safe baseline query while overriding ad‑hoc without modif
 
 ## Prerequisites
 - JDK 21+
-- Maven 3.8+
+- Maven 3.9+
 - Snowflake account with a warehouse and a role that can create DB/Schema/Table
 - A PKCS#8 RSA private key for key‑pair authentication
 - The component library installed to your local Maven repo (built from the repo root)
 
 Optional:
 - `snowsql` CLI to run the setup script
- - Shared helper scripts and keys: see `samples/shared/{scripts,keys}`
+- Shared helper scripts and keys: see `samples/shared/{scripts,keys}`
 
 ### Install snowsql
 - Official docs: https://docs.snowflake.com/en/user-guide/snowsql-install-config
@@ -70,7 +70,6 @@ From the repository root:
 mvn -q -DskipTests install
 ```
 
-This places `io.dscope.camel:camel-snowflake:1.4.0` into your local Maven repository so the sample can depend on it.
 This places `io.dscope.camel:camel-snowflake:1.4.0` into your local Maven repository so the sample can depend on it.
 
 For rapid iterations you can use the root helper script (creates fresh snapshot then builds this sample):

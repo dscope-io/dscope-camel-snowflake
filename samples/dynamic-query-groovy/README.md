@@ -26,7 +26,7 @@ mvn -q -DskipTests \
   exec:java@run-once
 ```
 
-Notes:
+## Notes
 - Headers used to parameterize the query: `user_id`, `min_date`. Defaults come from `application.properties`.
 - Avoid duplicating DB/SCHEMA/WAREHOUSE/ROLE outside the JDBC URL.
 - Authenticator defaults to `snowflake_jwt` when a private key is provided.
