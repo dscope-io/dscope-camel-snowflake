@@ -21,3 +21,8 @@ src/generated/
 *.tmp
 *.swp
 *~
+pom-central.xml
+MAVEN_CENTRAL_DEPLOYMENT.md
+scripts/load-maven-env.sh
+scripts/ossrh-auth-check.py
+scripts/release-preflight.sh
