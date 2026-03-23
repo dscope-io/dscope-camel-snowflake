@@ -7,7 +7,7 @@ Each sample is a standalone Maven project with its own dependencies, configurati
 ```bash
 cd samples/dynamic-query-yaml
 mvn -q -DskipTests package
-java -jar target/dynamic-query-yaml-1.4.0.jar
+java -jar target/dynamic-query-yaml-1.5.0.jar
 ```
 
 ## Dependency
@@ -15,7 +15,7 @@ java -jar target/dynamic-query-yaml-1.4.0.jar
 <dependency>
   <groupId>io.dscope.camel</groupId>
   <artifactId>camel-snowflake</artifactId>
-  <version>1.4.0</version>
+  <version>1.5.0</version>
 </dependency>
 ```
 
@@ -70,7 +70,7 @@ mvn -q -DskipTests package
 
   # Build and run
   mvn -q -DskipTests package
-  java -jar target/dynamic-query-yaml-1.4.0.jar
+  java -jar target/dynamic-query-yaml-1.5.0.jar
   ```
 - Details: see `samples/dynamic-query-yaml/README.md`
 
@@ -117,7 +117,7 @@ Dependency on the component:
 <dependency>
   <groupId>io.dscope.camel</groupId>
   <artifactId>camel-snowflake</artifactId>
-  <version>1.4.0</version>
+  <version>1.5.0</version>
 </dependency>
 ```
 

@@ -7,14 +7,19 @@
 
 A comprehensive Apache Camel component for integrating with Snowflake Data Warehouse, featuring enterprise-grade connection pooling, extensive tests, and production-ready JDBC operations.
 
+The repository now publishes two artifacts:
+
+- `io.dscope.camel:camel-snowflake` for the core Snowflake Camel component
+- `io.dscope.camel:camel-snowflake-mcp` for Snowflake-specific MCP integration beans layered on top of the core component and `io.dscope.camel:camel-mcp`
+
 ## 🔢 Tested Stack
 Production users should depend on the latest released version; local source builds track the current main branch state.
 
 | Channel | Version | Maven Coordinates | Notes |
 |---------|---------|-------------------|-------|
-| Latest Release | 1.4.0 | `io.dscope.camel:camel-snowflake:1.4.0` | Stable, recommended for production |
-| Previous Release | 1.3.0 | `io.dscope.camel:camel-snowflake:1.3.0` | Prior feature release |
-| Development Build | 1.4.0 | `io.dscope.camel:camel-snowflake:1.4.0` | Build from source (`mvn install`) to stay current with main |
+| Latest Release | 1.5.0 | `io.dscope.camel:camel-snowflake:1.5.0` | Stable, recommended for production |
+| Previous Release | 1.4.0 | `io.dscope.camel:camel-snowflake:1.4.0` | Prior feature release |
+| Development Build | 1.5.0 | `io.dscope.camel:camel-snowflake:1.5.0` | Build from source (`mvn install`) to stay current with main |
 
 ## 🛠 Installation
 
@@ -24,7 +29,7 @@ Production users should depend on the latest released version; local source buil
 <dependency>
     <groupId>io.dscope.camel</groupId>
     <artifactId>camel-snowflake</artifactId>
-    <version>1.4.0</version>
+    <version>1.5.0</version>
 </dependency>
 ```
 
@@ -34,7 +39,7 @@ Build and install the project locally first (`mvn clean install` at the repo roo
 <dependency>
     <groupId>io.dscope.camel</groupId>
     <artifactId>camel-snowflake</artifactId>
-    <version>1.4.0</version>
+    <version>1.5.0</version>
 </dependency>
 ```
 
@@ -47,7 +52,7 @@ Build and install the project locally first (`mvn clean install` at the repo roo
 - **Production Ready**: JDBC operations with transaction support and error handling
 - **JSON Support**: Built-in JSON data processing capabilities
 - **Auto-Discovery**: Automatic component registration with Apache Camel
-- **🤖 MCP Tooling**: Processors and samples that expose Snowflake queries via the Model Context Protocol
+- **🤖 MCP Tooling**: Optional MCP module and samples that expose Snowflake queries via the Model Context Protocol
 
 ## 📋 Requirements
 
@@ -86,7 +91,7 @@ Current tested versions in this repository:
 <dependency>
     <groupId>io.dscope.camel</groupId>
     <artifactId>camel-snowflake</artifactId>
-    <version>1.4.0</version>
+    <version>1.5.0</version>
 </dependency>
 ```
 
@@ -287,7 +292,22 @@ List<JsonNode> jsonResults = SnowflakeJdbcOperations.queryJsonData(
 
 ## 🤖 Model Context Protocol (MCP) Support
 
-The component ships with registry beans in `io.dscope.camel.snowflake.mcp` that let you expose Snowflake tooling to MCP-compatible clients (GitHub Copilot, VS Code, etc.) with minimal wiring. They rely on the shared `camel-mcp` catalog utilities for metadata loading.
+Snowflake-specific MCP support now lives in the separate `io.dscope.camel:camel-snowflake-mcp` module. It provides the registry beans in `io.dscope.camel.snowflake.mcp` and depends on the core `camel-snowflake` component plus `camel-mcp`.
+
+```xml
+<dependency>
+    <groupId>io.dscope.camel</groupId>
+    <artifactId>camel-snowflake-mcp</artifactId>
+    <version>1.5.0</version>
+</dependency>
+<dependency>
+    <groupId>io.dscope.camel</groupId>
+    <artifactId>camel-mcp</artifactId>
+    <version>1.4.1</version>
+</dependency>
+```
+
+These beans let you expose Snowflake tooling to MCP-compatible clients (GitHub Copilot, VS Code, etc.) with minimal wiring.
 
 ### Included Beans
 
@@ -361,7 +381,7 @@ The remaining MCP processors (JSON-RPC envelope parsing, rate limiting, streamin
          -Dsnowflake.warehouse=$SNOWFLAKE_WAREHOUSE \
          -Dsnowflake.role=$SNOWFLAKE_ROLE \
          -Dorg.slf4j.simpleLogger.defaultLogLevel=debug \
-    -jar samples/mcp-snowflake-yaml/target/mcp-snowflake-yaml-1.4.0-shaded.jar
+    -jar samples/mcp-snowflake-yaml/target/mcp-snowflake-yaml-1.5.0-shaded.jar
      ```
 5. Issue MCP-compliant JSON-RPC requests (aliases in `samples/mcp-snowflake-yaml/shell-aliases.zsh`):
      ```bash

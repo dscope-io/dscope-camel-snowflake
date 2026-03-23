@@ -257,7 +257,7 @@ _kill_mcp_server() {
 
 run_mcp_acceptance() {
   local sample_dir="${SAMPLES_DIR}/mcp-snowflake-yaml"
-  local jar="${sample_dir}/target/mcp-snowflake-yaml-1.4.0-shaded.jar"
+  local jar="${sample_dir}/target/mcp-snowflake-yaml-1.5.0-shaded.jar"
   local server_log="${OUT_DIR}/AT-06-server.log"
 
   if [[ ! -f "${jar}" ]]; then

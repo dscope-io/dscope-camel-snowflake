@@ -5,7 +5,7 @@ This document describes the available deployment packages for the Camel Snowflak
 ## Available Packages
 
 ### 1. OSGi Bundle (Primary)
-- **File**: `camel-snowflake-1.4.0.jar`
+- **File**: `camel-snowflake-1.5.0.jar`
 - **Size**: ~30 KB
 - **Usage**: For OSGi container deployment (Karaf, Felix, etc.)
 - **Features**:
@@ -15,7 +15,7 @@ This document describes the available deployment packages for the Camel Snowflak
   - Compatible with Apache Camel 4.x in OSGi environments
 
 ### 2. Standalone Fat JAR
-- **File**: `camel-snowflake-1.4.0-standalone.jar`
+- **File**: `camel-snowflake-1.5.0-standalone.jar`
 - **Size**: ~85 MB
 - **Usage**: For standalone applications or environments without dependency management
 - **Features**:
@@ -52,7 +52,7 @@ Creates a standalone JAR with all dependencies included.
 ## Deployment Instructions
 
 ### OSGi Container Deployment (Karaf, Felix)
-1. Copy `camel-snowflake-1.4.0.jar` to your OSGi container
+1. Copy `camel-snowflake-1.5.0.jar` to your OSGi container
 2. Install required dependencies:
    - Snowflake JDBC driver
    - HikariCP connection pool
@@ -60,7 +60,7 @@ Creates a standalone JAR with all dependencies included.
 3. The component will be auto-discovered and available as `snowflake://`
 
 ### Standalone Application
-1. Add `camel-snowflake-1.4.0-standalone.jar` to your classpath
+1. Add `camel-snowflake-1.5.0-standalone.jar` to your classpath
 2. No additional dependencies needed
 3. Use the component directly in your Camel routes
 
@@ -69,7 +69,7 @@ Creates a standalone JAR with all dependencies included.
 <dependency>
     <groupId>io.dscope.camel</groupId>
     <artifactId>camel-snowflake</artifactId>
-  <version>1.4.0</version>
+  <version>1.5.0</version>
 </dependency>
 ```
 

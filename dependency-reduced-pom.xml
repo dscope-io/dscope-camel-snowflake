@@ -3,7 +3,7 @@
   <parent>
     <artifactId>camel-snowflake-build-parent</artifactId>
     <groupId>io.dscope.camel</groupId>
-    <version>1.4.0</version>
+    <version>1.5.0</version>
     <relativePath>pom-shared.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
@@ -43,7 +43,7 @@
                 </goals>
                 <configuration>
                   <publishingServerId>central</publishingServerId>
-                  <deploymentName>io.dscope.camel:camel-snowflake:1.4.0</deploymentName>
+                  <deploymentName>io.dscope.camel:camel-snowflake:1.5.0</deploymentName>
                   <autoPublish>true</autoPublish>
                   <waitUntil>VALIDATED</waitUntil>
                 </configuration>
@@ -51,7 +51,7 @@
             </executions>
             <configuration>
               <publishingServerId>central</publishingServerId>
-              <deploymentName>io.dscope.camel:camel-snowflake:1.4.0</deploymentName>
+              <deploymentName>io.dscope.camel:camel-snowflake:1.5.0</deploymentName>
               <autoPublish>true</autoPublish>
               <waitUntil>VALIDATED</waitUntil>
             </configuration>

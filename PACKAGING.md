@@ -8,12 +8,12 @@ We have successfully added comprehensive packaging configurations to the Maven P
 
 | Package Type | File | Size | Purpose |
 |-------------|------|------|---------|
-| **OSGi Bundle** | `camel-snowflake-1.4.0.jar` | 30 KB | Enterprise deployment in OSGi containers (Karaf, Felix) |
-| **Standalone JAR** | `camel-snowflake-1.4.0-standalone.jar` | 85 MB | Self-contained deployment with all dependencies |
-| **Sources JAR** | `camel-snowflake-1.4.0-sources.jar` | 19 KB | Source code for developers and IDEs |
-| **Javadoc JAR** | `camel-snowflake-1.4.0-javadoc.jar` | 156 KB | API documentation |
-| **Distribution ZIP** | `camel-snowflake-1.4.0-distribution.zip` | 153 MB | Complete distribution with examples and docs |
-| **Distribution TAR.GZ** | `camel-snowflake-1.4.0-distribution.tar.gz` | 153 MB | Unix/Linux distribution archive |
+| **OSGi Bundle** | `camel-snowflake-1.5.0.jar` | 30 KB | Enterprise deployment in OSGi containers (Karaf, Felix) |
+| **Standalone JAR** | `camel-snowflake-1.5.0-standalone.jar` | 85 MB | Self-contained deployment with all dependencies |
+| **Sources JAR** | `camel-snowflake-1.5.0-sources.jar` | 19 KB | Source code for developers and IDEs |
+| **Javadoc JAR** | `camel-snowflake-1.5.0-javadoc.jar` | 156 KB | API documentation |
+| **Distribution ZIP** | `camel-snowflake-1.5.0-distribution.zip` | 153 MB | Complete distribution with examples and docs |
+| **Distribution TAR.GZ** | `camel-snowflake-1.5.0-distribution.tar.gz` | 153 MB | Unix/Linux distribution archive |
 
 ## Maven Profiles
 
@@ -72,12 +72,12 @@ The OSGi bundle includes proper metadata:
 
 ```manifest
 Bundle-SymbolicName: io.dscope.camel.camel-snowflake
-Bundle-Version: 1.4.0
+Bundle-Version: 1.5.0
 Camel-Component: snowflake=io.dscope.camel.snowflake.SnowflakeComponent
 Export-Package: 
-  io.dscope.camel.snowflake;version="1.4.0"
-  io.dscope.camel.snowflake.jdbc;version="1.4.0"
-  io.dscope.camel.snowflake.sql;version="1.4.0"
+  io.dscope.camel.snowflake;version="1.5.0"
+  io.dscope.camel.snowflake.jdbc;version="1.5.0"
+  io.dscope.camel.snowflake.sql;version="1.5.0"
 Import-Package: 
   org.apache.camel;version="[4.0,5.0)"
   net.snowflake.client.jdbc;version="[3.0,4.0)"
@@ -90,14 +90,14 @@ Import-Package:
 ### OSGi Container (Apache Karaf)
 ```bash
 # Install in Karaf
-karaf@root()> bundle:install file:///path/to/camel-snowflake-1.4.0.jar
+karaf@root()> bundle:install file:///path/to/camel-snowflake-1.5.0.jar
 karaf@root()> bundle:start [bundle-id]
 ```
 
 ### Standalone Application
 ```bash
 # Add to classpath
-java -cp "camel-snowflake-1.4.0-standalone.jar:your-app.jar" YourMainClass
+java -cp "camel-snowflake-1.5.0-standalone.jar:your-app.jar" YourMainClass
 ```
 
 ### Maven Dependency
@@ -105,7 +105,7 @@ java -cp "camel-snowflake-1.4.0-standalone.jar:your-app.jar" YourMainClass
 <dependency>
     <groupId>io.dscope.camel</groupId>
     <artifactId>camel-snowflake</artifactId>
-  <version>1.4.0</version>
+  <version>1.5.0</version>
 </dependency>
 ```
 

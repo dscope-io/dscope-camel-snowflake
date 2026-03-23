@@ -4,77 +4,17 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>io.dscope.camel</groupId>
-        <artifactId>camel-snowflake-build-parent</artifactId>
-        <version>1.4.0</version>
-        <relativePath>pom-shared.xml</relativePath>
-    </parent>
+    <groupId>io.dscope.camel</groupId>
+    <artifactId>camel-snowflake-aggregator</artifactId>
+    <version>1.5.0</version>
+    <packaging>pom</packaging>
 
-    <artifactId>camel-snowflake</artifactId>
-    <packaging>bundle</packaging>
+    <name>Camel Snowflake Aggregator</name>
+    <description>Aggregator for Camel Snowflake core and MCP modules</description>
 
-    <name>Camel Snowflake Component</name>
-    <description>Apache Camel component for Snowflake data warehouse integration</description>
-
-    <profiles>
-        <profile>
-            <id>release</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <version>${maven.gpg.plugin.version}</version>
-                        <executions>
-                            <execution>
-                                <id>sign-artifacts</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>sign</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <profile>
-            <id>dev</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <properties>
-                <maven.javadoc.skip>true</maven.javadoc.skip>
-                <maven.source.skip>true</maven.source.skip>
-                <maven.assembly.skipAssembly>true</maven.assembly.skipAssembly>
-            </properties>
-        </profile>
-
-        <profile>
-            <id>fatjar</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-shade-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>shade-all-dependencies</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>shade</goal>
-                                </goals>
-                                <configuration>
-                                    <shadedArtifactAttached>false</shadedArtifactAttached>
-                                    <createDependencyReducedPom>false</createDependencyReducedPom>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
+    <modules>
+        <module>camel-snowflake</module>
+        <module>camel-snowflake-mcp</module>
+        <module>samples</module>
+    </modules>
 </project>

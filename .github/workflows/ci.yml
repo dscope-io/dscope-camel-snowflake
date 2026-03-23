@@ -41,7 +41,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: surefire-reports
-          path: target/surefire-reports/**/*.txt
+          path: |
+            **/target/surefire-reports/**/*.txt
 
   release-artifacts:
     name: Package Release Artifacts
@@ -77,8 +78,8 @@ jobs:
         with:
           name: distribution
           path: |
-            target/camel-snowflake-*-distribution.zip
-            target/camel-snowflake-*-distribution.tar.gz
+            camel-snowflake/target/camel-snowflake-*-distribution.zip
+            camel-snowflake/target/camel-snowflake-*-distribution.tar.gz
 
       # Placeholder: if you later configure signing & deployment (e.g. to Maven Central)
       # add a step here using maven settings with server credentials & GPG.
@@ -97,7 +98,7 @@ jobs:
         with:
           body: ${{ steps.notes.outputs.changes }}
           files: |
-            target/camel-snowflake-*-distribution.zip
-            target/camel-snowflake-*-distribution.tar.gz
+            camel-snowflake/target/camel-snowflake-*-distribution.zip
+            camel-snowflake/target/camel-snowflake-*-distribution.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

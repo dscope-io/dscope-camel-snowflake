@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.1.1"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.1.1 
+                              http://maven.apache.org/xsd/assembly-2.1.1.xsd">
+    
+    <id>distribution</id>
+    <formats>
+        <format>zip</format>
+        <format>tar.gz</format>
+    </formats>
+    
+    <includeBaseDirectory>true</includeBaseDirectory>
+    <baseDirectory>${project.artifactId}-${project.version}</baseDirectory>
+    
+    <fileSets>
+        <!-- Include documentation -->
+        <fileSet>
+            <directory>${project.basedir}/..</directory>
+            <outputDirectory>/</outputDirectory>
+            <includes>
+                <include>README.md</include>
+                <include>LICENSE*</include>
+                <include>NOTICE*</include>
+                <include>CHANGELOG.md</include>
+                <!-- Legacy doc removed; see samples for up-to-date guidance -->
+            </includes>
+        </fileSet>
+        
+        <!-- Include example configuration -->
+        <fileSet>
+            <directory>${project.basedir}/..</directory>
+            <outputDirectory>/examples</outputDirectory>
+            <includes>
+                <include>.env.example</include>
+            </includes>
+        </fileSet>
+        
+        <!-- Include source code for reference -->
+        <fileSet>
+            <directory>${project.basedir}/src/main/java</directory>
+            <outputDirectory>/src</outputDirectory>
+            <includes>
+                <include>**/*.java</include>
+            </includes>
+        </fileSet>
+        
+        <!-- Include test examples -->
+        <fileSet>
+            <directory>${project.basedir}/src/test/java</directory>
+            <outputDirectory>/examples/tests</outputDirectory>
+            <includes>
+                <include>**/demo/*.java</include>
+            </includes>
+        </fileSet>
+        
+        <!-- Include resources -->
+        <fileSet>
+            <directory>${project.basedir}/src/main/resources</directory>
+            <outputDirectory>/resources</outputDirectory>
+            <includes>
+                <include>**/*</include>
+            </includes>
+        </fileSet>
+        
+        <!-- Include built JARs; optional ones (sources/javadoc/standalone) will be skipped if absent -->
+        <fileSet>
+            <directory>${project.build.directory}</directory>
+            <outputDirectory>/lib</outputDirectory>
+            <includes>
+                <include>${project.build.finalName}.jar</include>
+                <include>${project.build.finalName}-sources.jar</include>
+                <include>${project.build.finalName}-javadoc.jar</include>
+                <include>${project.build.finalName}-standalone.jar</include>
+            </includes>
+        </fileSet>
+    </fileSets>
+    
+    <!-- Include dependencies -->
+    <dependencySets>
+        <dependencySet>
+            <outputDirectory>/lib/dependencies</outputDirectory>
+            <useProjectArtifact>false</useProjectArtifact>
+            <scope>runtime</scope>
+            <excludes>
+                <exclude>*:*:*:*:test</exclude>
+            </excludes>
+        </dependencySet>
+    </dependencySets>
+</assembly>

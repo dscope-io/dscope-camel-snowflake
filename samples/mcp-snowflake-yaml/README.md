@@ -60,7 +60,7 @@ java \
   -Dsnowflake.schema=PUBLIC \
   -Dsnowflake.warehouse=COMPUTE_WH \
   -Dsnowflake.role=ACCOUNTADMIN \
-  -jar target/mcp-snowflake-yaml-1.4.0-shaded.jar
+  -jar target/mcp-snowflake-yaml-1.5.0-shaded.jar
 ```
 
 Once running it will bind (by default) to `http://0.0.0.0:8080/mcp`.

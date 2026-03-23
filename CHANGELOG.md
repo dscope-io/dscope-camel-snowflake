@@ -7,79 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- No unreleased changes yet.
+
+## [1.5.0] - 2026-03-22
+
 ### Added
-- Added dependency on `io.dscope.camel:camel-mcp` to reuse shared MCP routing utilities.
+- Added a dedicated `io.dscope.camel:camel-snowflake-mcp` module for Snowflake-specific MCP integration.
+- Added a reactor build that publishes separate core and MCP artifacts from the same repository.
 
 ### Changed
-- Upgraded Apache Camel dependencies to 4.15.0 to align with shared MCP utilities.
+- Bumped the project version to `1.5.0` across the reactor, samples, packaging metadata, and documentation.
+- Upgraded `io.dscope.camel:camel-mcp` to `1.4.1`.
+- Updated the MCP sample to depend on `io.dscope.camel:camel-snowflake-mcp` instead of bundling MCP support into the core component.
+- Refreshed build scripts, VS Code tasks, acceptance commands, and sample launchers for the new artifact layout and version.
+- Reduced sample shaded-jar noise by filtering common duplicate metadata resources during shading.
 
 ### Removed
-- Snowflake-specific MCP routing no longer depends on local helper implementations for core protocol stages; route definitions should reference shared `camel-mcp` processors directly. Compatibility wrapper classes may still exist in `io.dscope.camel.snowflake.mcp` during transition.
-
-## [1.0.0-SNAPSHOT] - 2025-09-25
-
-### Added
-- Initial release of Apache Camel Snowflake component
-- Snowflake database connectivity with JDBC driver integration
-- Support for key-pair authentication with private key
-- Password-based authentication support
-- SQL parameter binding with `:#paramName` syntax
-- Header-based parameter resolution with configurable prefix
-- Connection pooling with HikariCP
-- Comprehensive configuration options:
-  - Account, database, schema, warehouse, role
-  - Custom JDBC URL override for testing
-  - Parameter binding enable/disable
-  - Parameter prefix customization
-- OSGi bundle packaging for enterprise deployment
-- Standalone JAR with all dependencies included
-- Generic sample query examples and tests
-- Comprehensive test suite with:
-  - Unit tests for all components
-  - Integration tests with real Snowflake connectivity
-  - Parameter binding validation tests
-  - Sample use case tests against SOME_TABLE
-- Demo applications showing practical usage
-- Environment variable configuration via .env files
-- Complete documentation and usage examples
-
-### Security Features
-- SQL injection prevention through PreparedStatement parameter binding
-- Private key authentication support (PKCS#8 format)
-- Secure credential handling through configuration abstraction
-- Connection pooling with proper resource management
-
-### Dependencies
-- Apache Camel 4.14.0
-- Snowflake JDBC Driver 3.26.1
-- HikariCP 5.1.0 for connection pooling
-- Jackson 2.17.2 for JSON processing
-- SLF4J 2.0.9 for logging
-- Java 21 LTS requirement
-
-### Build and Packaging
-- Maven-based build system
-- OSGi bundle generation with Felix Maven Bundle Plugin
-- Source and Javadoc JAR generation
-- Standalone JAR with shaded dependencies
-- Distribution packages (ZIP/TAR.GZ) with examples
-- Release profile with GPG signing support
-- Development profile for faster builds
-
-### Documentation
-- Comprehensive README with setup instructions
-- Sample usage examples and best practices
-- API documentation with Javadoc
-- Configuration reference
-- Security guidelines for private key authentication
-
-### Testing
-- JUnit 5 test framework
-- Camel Test Support integration
-- Environment-based testing with .env configuration
-- Mock and integration test scenarios
-- Sample query validation
-- Parameter binding functionality verification
+- Snowflake-specific MCP routing is no longer shipped inside the core `camel-snowflake` artifact.
 
 ## [1.2.0] - 2025-10-08
 

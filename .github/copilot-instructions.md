@@ -1,8 +1,13 @@
 # Apache Camel Snowflake Component - AI Assistant Instructions
 
-This workspace contains a production-ready Apache Camel component for Snowflake integration with enterprise features and MCP tooling support.
+This workspace contains a production-ready Apache Camel component for Snowflake integration with enterprise features and an MCP extension module.
 
 ## 🏗️ Architecture Overview
+
+**Module Structure**:
+- `camel-snowflake/` → Core Snowflake Camel component artifact (`io.dscope.camel:camel-snowflake`)
+- `camel-snowflake-mcp/` → Snowflake MCP integration artifact (`io.dscope.camel:camel-snowflake-mcp`)
+- `samples/` → Standalone sample applications that exercise one or both modules
 
 **Core Component Structure** (package: `io.dscope.camel.snowflake`):
 - `SnowflakeComponent` → Main Camel component registration point
@@ -10,14 +15,19 @@ This workspace contains a production-ready Apache Camel component for Snowflake 
 - `SnowflakeProducer/Consumer` → Message processing logic
 - `SnowflakeConfiguration` → Centralized config with authentication modes
 - `jdbc/` → HikariCP connection pooling + JDBC operations utilities
-- `mcp/` → Model Context Protocol processors for AI integration
 - `sql/` → SQL templating and parameter binding
+
+**MCP Extension Structure** (package: `io.dscope.camel.snowflake.mcp`):
+- `McpSnowflakeRequestProcessor` → Translates MCP tool calls into Snowflake headers/query execution
+- `McpSnowflakeResponseProcessor` → Normalizes Snowflake execution results into MCP JSON-RPC responses
+- `McpSnowflakeErrorProcessor` → Formats Snowflake/MCP execution failures for clients
+- Compatibility wrapper processors remain in this module when route wiring benefits from Snowflake-specific names
 
 **Multi-Sample Architecture** (`samples/`):
 - Each sample is a standalone Maven project with its own dependencies
 - `samples/shared/` contains common SQL scripts and helper utilities
 - MCP samples (`mcp-snowflake-yaml`) expose Snowflake as MCP tools for AI clients
-- All samples use the shaded component dependency (`io.dscope.camel:camel-snowflake:1.3.0`)
+- Non-MCP samples use `io.dscope.camel:camel-snowflake`; MCP samples depend on `io.dscope.camel:camel-snowflake-mcp` and `io.dscope.camel:camel-mcp:1.4.1`
 
 ## 🛠️ Developer Workflows
 
@@ -82,7 +92,7 @@ Header-based per-message configuration precedence (highest wins):
 
 ## 🤖 MCP Integration Specifics
 
-**Registry Beans** (`io.dscope.camel.snowflake.mcp`):
+**Registry Beans** (`camel-snowflake-mcp`, package `io.dscope.camel.snowflake.mcp`):
 - `mcpSnowflakeRequest` → Bridges MCP `tools/call` to Snowflake endpoints
 - `mcpSnowflakeResponse` → Normalizes results to MCP JSON-RPC format
 - Combines with `camel-mcp` catalog processors for full MCP protocol support
@@ -94,11 +104,13 @@ Header-based per-message configuration precedence (highest wins):
 
 ## 📁 Key Files for Code Understanding
 
-- `SnowflakeProducer.java` → Core message processing and override logic
-- `SnowflakeJdbcOperations.java` → Low-level database operations patterns
+- `camel-snowflake/src/main/java/io/dscope/camel/snowflake/SnowflakeProducer.java` → Core message processing and override logic
+- `camel-snowflake/src/main/java/io/dscope/camel/snowflake/jdbc/SnowflakeJdbcOperations.java` → Low-level database operations patterns
+- `camel-snowflake-mcp/src/main/java/io/dscope/camel/snowflake/mcp/McpSnowflakeRequestProcessor.java` → Snowflake-specific MCP request translation
 - `samples/dynamic-query-yaml/src/main/resources/routes/snowflake-route.yaml` → YAML DSL route examples
 - `samples/mcp-snowflake-yaml/` → Complete MCP server implementation
-- `src/test/java/io/dscope/camel/snowflake/` → Testing patterns and mock setup
+- `camel-snowflake/src/test/java/io/dscope/camel/snowflake/` → Core component testing patterns and mock setup
+- `camel-snowflake-mcp/src/test/java/io/dscope/camel/snowflake/mcp/` → MCP integration tests
 
 ## 🚀 Development Conventions
 

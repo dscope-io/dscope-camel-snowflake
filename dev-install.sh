@@ -39,7 +39,7 @@ mvn ${FORCE_UPDATE_FLAG} -q -DskipTests install
 echo "== 2/2 Building sample module: ${SAMPLE_MODULE} =="
 mvn ${FORCE_UPDATE_FLAG} -q -f samples/pom.xml -pl "${SAMPLE_MODULE}" -am package
 
-JAR_PATH="samples/${SAMPLE_MODULE}/target/${SAMPLE_MODULE}-1.0.0-SNAPSHOT.jar"
+JAR_PATH="samples/${SAMPLE_MODULE}/target/${SAMPLE_MODULE}-1.5.0.jar"
 if [ -f "${JAR_PATH}" ]; then
   echo "Built sample jar: ${JAR_PATH}"
 else
@@ -48,7 +48,7 @@ else
 fi
 
 echo "Verification: ensuring updated SnowflakeProducer is present in local repo jar..."
-COMP_JAR="${HOME}/.m2/repository/io/dscope/camel/camel-snowflake/1.0.0-SNAPSHOT/camel-snowflake-1.0.0-SNAPSHOT.jar"
+COMP_JAR="${HOME}/.m2/repository/io/dscope/camel/camel-snowflake/1.5.0/camel-snowflake-1.5.0.jar"
 if [ -f "${COMP_JAR}" ]; then
   if unzip -p "${COMP_JAR}" io/dscope/camel/snowflake/SnowflakeProducer.class >/dev/null 2>&1; then
     echo "Component jar present: ${COMP_JAR}";
