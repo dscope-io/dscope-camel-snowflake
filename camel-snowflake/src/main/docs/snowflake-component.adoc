@@ -1,0 +1,36 @@
+= Snowflake Component
+:doctitle: Snowflake
+:shortname: snowflake
+:artifactid: camel-snowflake
+:description: Snowflake endpoint for connecting to Snowflake data warehouse.
+:since: 1.0
+:supportlevel: Stable
+:tabs-sync-option:
+:component-header: Both producer and consumer are supported
+
+*Since Camel {since}*
+
+*{component-header}*
+
+The `snowflake` component provides Apache Camel integration with Snowflake for query execution and dynamic parameter binding.
+
+== URI format
+
+[source,text]
+----
+snowflake:name
+----
+
+== Features
+
+* Core Snowflake producer and consumer support
+* Dynamic SQL resolution from headers, body, or endpoint configuration
+* Named parameter binding with `:#paramName` syntax
+* Per-exchange overrides through `CamelSnowflake*` headers
+* HikariCP-backed JDBC connection management
+
+== Module split
+
+This artifact contains the core Camel Snowflake component.
+
+The MCP-specific processors and registry bindings are published separately in the `camel-snowflake-mcp` module.

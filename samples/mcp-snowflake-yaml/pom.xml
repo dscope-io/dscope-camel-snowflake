@@ -108,16 +108,17 @@
                     <exclude>META-INF/jandex.idx</exclude>
                     <exclude>META-INF/versions/**/module-info.class</exclude>
                     <exclude>module-info.class</exclude>
+                    <exclude>META-INF/io.netty.versions.properties</exclude>
+                    <exclude>META-INF/native-image/io.netty/netty-common/native-image.properties</exclude>
+                    <exclude>META-INF/native-image/io.netty/netty-buffer/native-image.properties</exclude>
+                    <exclude>META-INF/FastDoubleParser-LICENSE</exclude>
+                    <exclude>META-INF/FastDoubleParser-NOTICE</exclude>
+                    <exclude>META-INF/thirdparty-LICENSE</exclude>
                     <exclude>pom.xml</exclude>
                   </excludes>
                 </filter>
               </filters>
               <transformers>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>org.apache.camel.main.Main</mainClass>
-                </transformer>
-              </transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
                   <resource>META-INF/services/org/apache/camel/other.properties</resource>
@@ -149,6 +150,13 @@
                 <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
                   <resource>bean.properties</resource>
                 </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>transformer.properties</resource>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>org.apache.camel.main.Main</mainClass>
+                </transformer>
+              </transformers>
             </configuration>
           </execution>
         </executions>

@@ -82,9 +82,6 @@
             <outputDirectory>/lib/dependencies</outputDirectory>
             <useProjectArtifact>false</useProjectArtifact>
             <scope>runtime</scope>
-            <excludes>
-                <exclude>*:*:*:*:test</exclude>
-            </excludes>
         </dependencySet>
     </dependencySets>
 </assembly>
