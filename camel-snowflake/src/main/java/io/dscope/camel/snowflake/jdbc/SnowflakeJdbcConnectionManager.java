@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.KeyFactory;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.sql.Connection;
@@ -36,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -48,7 +50,8 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
 import io.dscope.camel.snowflake.SnowflakeConfiguration;
-import net.snowflake.client.jdbc.SnowflakeBasicDataSource;
+import net.snowflake.client.api.datasource.SnowflakeDataSource;
+import net.snowflake.client.api.datasource.SnowflakeDataSourceFactory;
 
 /**
  * JDBC Connection Manager for Snowflake connections. Manages connection pooling
@@ -107,7 +110,7 @@ public class SnowflakeJdbcConnectionManager {
 
         } else {
             // Snowflake production database: construct typed DataSource directly to avoid reflection/type issues
-            SnowflakeBasicDataSource ds = new SnowflakeBasicDataSource();
+            SnowflakeDataSource ds = SnowflakeDataSourceFactory.createDataSource();
             ds.setUrl(jdbcUrl);
 
             // Core connection properties
@@ -125,7 +128,7 @@ public class SnowflakeJdbcConnectionManager {
                     throw new IllegalArgumentException("OAuth authenticator selected but no token provided. Set token=... on the endpoint or configuration.");
                 }
                 ds.setAuthenticator("OAUTH");
-                ds.setOauthToken(config.getToken());
+                ds.setToken(config.getToken());
                 LOG.info("Snowflake auth mode: OAUTH (token provided)");
             } else if (config.getPrivateKey() != null && !config.getPrivateKey().trim().isEmpty()) {
                 try {
@@ -146,6 +149,7 @@ public class SnowflakeJdbcConnectionManager {
                     String effectivePassword = (keyPassword != null && !keyPassword.isBlank()) ? keyPassword : null;
                     String resolvedFile = resolvePrivateKeyFile(config.getPrivateKeyFile());
                     ds.setPrivateKeyFile(resolvedFile, effectivePassword);
+                    allowEmptyPasswordForEncryptedPem(ds, resolvedFile, effectivePassword);
                     String effAuth = (config.getAuthenticator() == null || config.getAuthenticator().isBlank() || "snowflake".equalsIgnoreCase(config.getAuthenticator()))
                             ? "SNOWFLAKE_JWT" : config.getAuthenticator().toUpperCase();
                     ds.setAuthenticator(effAuth);
@@ -169,6 +173,7 @@ public class SnowflakeJdbcConnectionManager {
             // Therefore, do NOT set database/schema/warehouse/role on the DataSource here.
             // Apply optional Snowflake JDBC parameters (snowflake.jdbc.*) via known DataSource setters when possible
             applyOptionalDataSourceProperties(ds, config.getJdbcParameters());
+            disablePlatformDetectionByDefault(ds, config.getJdbcParameters());
 
             LOG.debug("Configured SnowflakeBasicDataSource with url={}, user={}, authenticator={} (expect SNOWFLAKE_JWT for key-pair)",
                     jdbcUrl, user, auth);
@@ -178,7 +183,7 @@ public class SnowflakeJdbcConnectionManager {
 
             // Connection pool settings
             hikariConfig.setMaximumPoolSize(10); // Maximum number of connections in pool
-            hikariConfig.setMinimumIdle(2);      // Minimum number of idle connections
+            hikariConfig.setMinimumIdle(0);
             hikariConfig.setConnectionTimeout(30000); // 30 seconds
             hikariConfig.setIdleTimeout(600000);       // 10 minutes
             hikariConfig.setMaxLifetime(1800000);      // 30 minutes
@@ -192,6 +197,22 @@ public class SnowflakeJdbcConnectionManager {
         }
 
         return new HikariDataSource(hikariConfig);
+    }
+
+    static void allowEmptyPasswordForEncryptedPem(SnowflakeDataSource ds, String path, String password) throws IOException {
+        if (password != null) {
+            return;
+        }
+        try (java.io.BufferedReader reader = Files.newBufferedReader(Paths.get(path), java.nio.charset.StandardCharsets.US_ASCII)) {
+            String firstLine = reader.readLine();
+            if (firstLine != null && firstLine.trim().equals("-----BEGIN ENCRYPTED PRIVATE KEY-----")) {
+                // The driver's setter drops empty passwords, but its encrypted PEM
+                // loader requires a non-null value even when the passphrase is empty.
+                ds.getProperties().setProperty("private_key_pwd", "");
+            }
+        } catch (java.nio.charset.MalformedInputException e) {
+            // Binary key files are left to the driver to validate.
+        }
     }
 
     private static String resolvePrivateKeyFile(String location) throws Exception {
@@ -299,7 +320,7 @@ public class SnowflakeJdbcConnectionManager {
         }
     }
 
-    private static void applyOptionalDataSourceProperties(SnowflakeBasicDataSource ds, Map<String, String> rawParams) {
+    private static void applyOptionalDataSourceProperties(SnowflakeDataSource ds, Map<String, String> rawParams) {
         if (rawParams == null || rawParams.isEmpty()) {
             return;
         }
@@ -357,18 +378,49 @@ public class SnowflakeJdbcConnectionManager {
         // them triggers Snowflake driver error: "Connection property specified more than once: DB".
     }
 
+    /**
+     * The JDBC 4.x driver performs cloud platform detection before every login by
+     * default. This attempts the AWS, Azure, and GCP metadata endpoints even for
+     * explicit key-pair authentication, where the result is not needed. Those
+     * endpoints are commonly firewalled outside cloud workloads and can stall the
+     * connection attempt. Disable the probe unless callers explicitly set the
+     * standard JDBC parameter {@code disablePlatformDetection}.
+     */
+    static void disablePlatformDetectionByDefault(SnowflakeDataSource ds, Map<String, String> rawParams) {
+        if (rawParams != null && rawParams.keySet().stream()
+                .filter(java.util.Objects::nonNull)
+                .anyMatch(key -> "disableplatformdetection".equalsIgnoreCase(key))) {
+            return;
+        }
+        ds.getProperties().setProperty("disablePlatformDetection", "true");
+    }
+
     // Removed legacy addDsProp; we now configure a concrete SnowflakeBasicDataSource directly
     /**
      * Generate a unique key for the DataSource cache.
      */
     private static String generateKey(SnowflakeConfiguration config) {
-        return String.format("%s:%s:%s:%s:%s",
-                config.getAccount(),
-                config.getUsername(),
-                config.getDatabase(),
-                config.getSchema(),
-                config.getWarehouse()
-        );
+        String identity = String.join("\u0000",
+                nullToEmpty(config.buildJdbcUrl()),
+                nullToEmpty(config.getUsername()),
+                nullToEmpty(config.getAuthenticator()),
+                nullToEmpty(config.getPassword()),
+                nullToEmpty(config.getPrivateKey()),
+                nullToEmpty(config.getPrivateKeyFile()),
+                nullToEmpty(config.getPrivateKeyFilePassword()),
+                nullToEmpty(config.getToken()),
+                new TreeMap<>(config.getJdbcParameters()).toString());
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(identity.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return java.util.HexFormat.of().formatHex(digest);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is unavailable", e);
+        }
+    }
+
+    private static String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 
     /**

@@ -6,23 +6,23 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.2</version>
+        <version>4.0.9</version>
         <relativePath/>
     </parent>
 
     <groupId>io.dscope.camel.samples</groupId>
     <artifactId>spring-boot-snowflake</artifactId>
-    <version>1.5.0</version>
+    <version>1.6.0</version>
     <name>Camel Snowflake Sample - Spring Boot</name>
-    <description>Spring Boot 3.5 sample integrating Apache Camel and the custom Snowflake component</description>
+    <description>Spring Boot 4.0 sample integrating Apache Camel and the custom Snowflake component</description>
 
     <properties>
         <java.version>21</java.version>
-            <camel.version>4.15.0</camel.version>
+            <camel.version>4.23.0</camel.version>
             <!-- Use the latest released component version -->
-            <snowflake.component.version>1.5.0</snowflake.component.version>
-        <snowflake.jdbc.version>3.26.1</snowflake.jdbc.version>
-        <hikaricp.version>5.1.0</hikaricp.version>
+            <snowflake.component.version>1.6.0</snowflake.component.version>
+        <snowflake.jdbc.version>4.3.4</snowflake.jdbc.version>
+        <hikaricp.version>7.1.0</hikaricp.version>
     </properties>
 
     <dependencies>

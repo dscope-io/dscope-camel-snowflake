@@ -1,13 +1,16 @@
 # Changelog
 
+## [Unreleased] (targeting 1.6.0)
+
+- Upgraded Camel, Snowflake JDBC, HikariCP, Jackson, Spring Boot, and supporting dependencies.
+- Added JDBC 4.x DataSource compatibility and isolated connection pools by full connection identity.
+- Hardened MCP connection handling and sample listener defaults.
+- Fixed repeated SQL parameter binding, SQL lexical handling, batch validation, and result aliases.
+
 All notable changes to the Camel Snowflake Component will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
-
-- No unreleased changes yet.
 
 ## [1.5.0] - 2026-03-22
 

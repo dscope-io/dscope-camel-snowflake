@@ -19,6 +19,7 @@ package io.dscope.camel.snowflake;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -466,7 +467,7 @@ public class SnowflakeConfiguration {
         getOutputFormat();
         getJdbcParameters();
         // Use custom JDBC URL if provided (useful for testing) but append extra jdbcParameters if present
-        if (jdbcUrl != null && !jdbcUrl.isEmpty()) {
+        if (getJdbcUrl() != null && !jdbcUrl.isEmpty()) {
             String url = jdbcUrl;
             if (jdbcParameters != null && !jdbcParameters.isEmpty()) {
                 url = appendParams(url, jdbcParameters);
@@ -475,22 +476,13 @@ public class SnowflakeConfiguration {
         }
         
         StringBuilder url = new StringBuilder("jdbc:snowflake://");
-        url.append(account).append(".snowflakecomputing.com/");
+        url.append(normalizeAccount(account)).append(".snowflakecomputing.com/");
         
         boolean hasQuery = false;
-        if (database != null && !database.isEmpty()) {
-            url.append("?db=").append(database);
-            hasQuery = true;
-            if (schema != null && !schema.isEmpty()) {
-                url.append("&schema=").append(schema);
-            }
-            if (warehouse != null && !warehouse.isEmpty()) {
-                url.append("&warehouse=").append(warehouse);
-            }
-            if (role != null && !role.isEmpty()) {
-                url.append("&role=").append(role);
-            }
-        }
+        hasQuery = appendParameter(url, hasQuery, "db", database);
+        hasQuery = appendParameter(url, hasQuery, "schema", schema);
+        hasQuery = appendParameter(url, hasQuery, "warehouse", warehouse);
+        hasQuery = appendParameter(url, hasQuery, "role", role);
 
         // Set JDBC_QUERY_RESULT_FORMAT to control driver result format
         String fmt = outputFormat;
@@ -516,9 +508,33 @@ public class SnowflakeConfiguration {
             String val = e.getValue() != null ? e.getValue() : "";
             sb.append(hasQuery ? '&' : '?');
             hasQuery = true;
+            if (!key.matches("[A-Za-z][A-Za-z0-9_]*")) {
+                throw new IllegalArgumentException("Invalid JDBC parameter name: " + key);
+            }
             sb.append(key).append('=')
               .append(URLEncoder.encode(val, StandardCharsets.UTF_8));
         }
         return sb.toString();
+    }
+
+    private static boolean appendParameter(StringBuilder url, boolean hasQuery, String name, String value) {
+        if (value == null || value.isBlank()) {
+            return hasQuery;
+        }
+        url.append(hasQuery ? '&' : '?')
+                .append(name).append('=')
+                .append(URLEncoder.encode(value, StandardCharsets.UTF_8));
+        return true;
+    }
+
+    private static String normalizeAccount(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Snowflake account is required");
+        }
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        if (!normalized.matches("[a-z0-9][a-z0-9_-]*(\\.[a-z0-9][a-z0-9_-]*)*")) {
+            throw new IllegalArgumentException("Invalid Snowflake account identifier");
+        }
+        return normalized;
     }
 }

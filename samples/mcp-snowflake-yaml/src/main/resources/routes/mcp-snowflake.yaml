@@ -30,9 +30,11 @@
       properties:
         queries: '#bean:mcpSnowflakeQueries'
         enableParameterBinding: "{{mcp.snowflake.enableParameterBinding}}"
+        allowConnectionOverrides: "{{mcp.snowflake.allowConnectionOverrides:false}}"
 
 - restConfiguration:
     component: netty-http
+    host: "{{mcp.server.host:127.0.0.1}}"
     port: "{{mcp.server.port:8080}}"
     bindingMode: off
     contextPath: /
@@ -136,4 +138,3 @@
       steps:
         - process:
             ref: "#bean:mcpHealthStatus"
-

@@ -117,11 +117,11 @@
       "stabilityDays": 2
     },
     {
-      "description": "Constrain Spring Boot parent to 3.5.x line for the sample app",
+      "description": "Constrain Spring Boot parent to 4.0.x line for the sample app",
       "matchManagers": ["maven"],
       "matchDepTypes": ["parent"],
       "matchPackageNames": ["org.springframework.boot:spring-boot-starter-parent"],
-      "allowedVersions": "3.5.x",
+      "allowedVersions": "4.0.x",
       "groupName": "spring-boot-parent",
       "labels": ["dependencies", "spring-boot"]
     },

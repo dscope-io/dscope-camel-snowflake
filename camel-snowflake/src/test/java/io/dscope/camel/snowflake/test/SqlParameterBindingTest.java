@@ -157,9 +157,8 @@ class SqlParameterBindingTest extends CamelTestSupport {
         SqlParameterBinder.ParameterBindingResult result = 
             SqlParameterBinder.bindParameters(sql, exchange, null);
         
-        // Verify results (5 unique parameters: startDate, endDate, minAmount, maxAmount, categories)
-        // Note: minAmount appears twice in the query, so 6 ? placeholders total
-        assertEquals(5, result.getBoundParameterCount());
+        // minAmount appears twice, so it must be bound twice by position.
+        assertEquals(6, result.getBoundParameterCount());
         assertFalse(result.hasUnboundParameters());
         assertEquals("2023-01-01", result.getBoundParameters().get("startDate"));
         assertEquals("2023-12-31", result.getBoundParameters().get("endDate"));
@@ -174,6 +173,18 @@ class SqlParameterBindingTest extends CamelTestSupport {
         
         logger.info("✓ Complex query parameter binding successful");
         logger.info("  Parameter count: {}", result.getBoundParameterCount());
+    }
+
+    @Test
+    void testRepeatedParametersAndQuotedSqlAreHandledSafely() {
+        Exchange exchange = new DefaultExchange(context);
+        exchange.getIn().setHeader("id", 42);
+
+        SqlParameterBinder.ParameterBindingResult result = SqlParameterBinder.bindParameters(
+                "SELECT :#id + :#id -- :#id\n, $$:#id$$, ':#id', \" :#id \"", exchange, null);
+
+        assertEquals("SELECT ? + ? -- :#id\n, $$:#id$$, ':#id', \" :#id \"", result.getProcessedSql());
+        assertArrayEquals(new Object[] {42, 42}, result.getParameterValues());
     }
     
     @Test

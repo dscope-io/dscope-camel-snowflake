@@ -27,12 +27,21 @@ public class McpSnowflakeRequestProcessor extends AbstractMcpRequestProcessor {
     private static final Set<String> RESERVED_PARAMETER_KEYS = Set.of(
         "query",
         "connection",
-        "enableparameterbinding");
+        "enableparameterbinding",
+        "account", "username", "password", "privatekey", "privatekeyfile",
+        "privatekeyfilepassword", "oauthtoken", "database", "schema", "warehouse",
+        "role", "authenticator", "parameterprefix");
+    private static final Set<String> CONNECTION_OVERRIDE_KEYS = Set.of(
+        "account", "username", "password", "privatekey", "private_key", "privatekeyfile",
+        "private_key_file", "privatekeyfilepassword", "private_key_file_password", "oauthtoken",
+        "oauth_token", "database", "schema", "warehouse", "role", "authenticator", "parameterprefix",
+        "parameter_prefix");
 
     private final McpMethodCatalog methodCatalog;
     private final Map<String, String> queries = new LinkedHashMap<>();
     private String query;
     private Boolean defaultEnableParameterBinding = Boolean.TRUE;
+    private boolean allowConnectionOverrides;
 
     public McpSnowflakeRequestProcessor() {
         this(new McpMethodCatalog());
@@ -86,14 +95,19 @@ public class McpSnowflakeRequestProcessor extends AbstractMcpRequestProcessor {
             }
         }
 
-        Map<String, Object> connectionSnapshot = new LinkedHashMap<>();
         Object connectionNode = payload.get("connection");
-        if (connectionNode instanceof Map<?, ?> connectionMap) {
-            applyConnectionOverrides(exchange, connectionSnapshot, (Map<?, ?>) connectionMap);
+        if (connectionNode instanceof Map<?, ?> || containsConnectionOverride(payload)) {
+            if (!allowConnectionOverrides) {
+                throw new IllegalArgumentException("Connection overrides are disabled for this MCP service");
+            }
         }
-
-        // Allow top-level overrides without wrapping in "connection"
-        applyConnectionOverrides(exchange, connectionSnapshot, payload);
+        Map<String, Object> connectionSnapshot = new LinkedHashMap<>();
+        if (allowConnectionOverrides) {
+            if (connectionNode instanceof Map<?, ?> connectionMap) {
+                applyConnectionOverrides(exchange, connectionSnapshot, connectionMap);
+            }
+            applyConnectionOverrides(exchange, connectionSnapshot, payload);
+        }
 
         // Validate incompatible authentication combinations after both passes
         boolean hasPassword = exchange.getIn().getHeader(SnowflakeConstants.HEADER_PASSWORD) != null;
@@ -162,6 +176,14 @@ public class McpSnowflakeRequestProcessor extends AbstractMcpRequestProcessor {
         this.defaultEnableParameterBinding = enableParameterBinding;
     }
 
+    public boolean isAllowConnectionOverrides() {
+        return allowConnectionOverrides;
+    }
+
+    public void setAllowConnectionOverrides(boolean allowConnectionOverrides) {
+        this.allowConnectionOverrides = allowConnectionOverrides;
+    }
+
     private String resolveConfiguredQuery(String methodName) {
         String configured = null;
         if (methodName != null) {
@@ -203,6 +225,13 @@ public class McpSnowflakeRequestProcessor extends AbstractMcpRequestProcessor {
         }
         String normalized = key.trim().toLowerCase();
         return RESERVED_PARAMETER_KEYS.contains(normalized);
+    }
+
+    private boolean containsConnectionOverride(Map<String, Object> payload) {
+        return payload.keySet().stream()
+                .filter(Objects::nonNull)
+                .map(key -> key.trim().toLowerCase())
+                .anyMatch(CONNECTION_OVERRIDE_KEYS::contains);
     }
 
     private void applyConnectionOverrides(Exchange exchange, Map<String, Object> accumulator, Map<?, ?> source) {

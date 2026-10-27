@@ -56,6 +56,10 @@ public class McpSnowflakeResponseProcessor extends AbstractMcpResponseProcessor 
         exchange.getIn().removeHeader(SnowflakeConstants.HEADER_ACCOUNT);
         exchange.getIn().removeHeader(SnowflakeConstants.HEADER_USERNAME);
         exchange.getIn().removeHeader(SnowflakeConstants.HEADER_PASSWORD);
+        exchange.getIn().removeHeader(SnowflakeConstants.HEADER_PRIVATE_KEY);
+        exchange.getIn().removeHeader(SnowflakeConstants.HEADER_PRIVATE_KEY_FILE);
+        exchange.getIn().removeHeader(SnowflakeConstants.HEADER_PRIVATE_KEY_FILE_PASSWORD);
+        exchange.getIn().removeHeader(SnowflakeConstants.HEADER_OAUTH_TOKEN);
         exchange.getIn().removeHeader(SnowflakeConstants.HEADER_DATABASE);
         exchange.getIn().removeHeader(SnowflakeConstants.HEADER_SCHEMA);
         exchange.getIn().removeHeader(SnowflakeConstants.HEADER_WAREHOUSE);

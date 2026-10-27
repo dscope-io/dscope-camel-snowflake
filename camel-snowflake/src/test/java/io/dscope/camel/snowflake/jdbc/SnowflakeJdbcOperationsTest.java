@@ -18,10 +18,14 @@
 package io.dscope.camel.snowflake.jdbc;
 
 import io.dscope.camel.snowflake.SnowflakeConfiguration;
+import net.snowflake.client.api.datasource.SnowflakeDataSource;
+import net.snowflake.client.api.datasource.SnowflakeDataSourceFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.List;
 
 /**
  * Unit tests for JDBC Operations utilities.
@@ -142,5 +146,61 @@ class SnowflakeJdbcOperationsTest {
         assertEquals(3, batchParams[0].length);
         assertEquals("Alice", batchParams[0][1]);
         assertEquals(false, batchParams[1][2]);
+    }
+
+    @Test
+    void rejectsIncompleteBatchRowsBeforeWriting() throws Exception {
+        SnowflakeConfiguration h2 = new SnowflakeConfiguration();
+        h2.setJdbcUrl("jdbc:h2:mem:batch-validation;DB_CLOSE_DELAY=-1");
+        h2.setUsername("sa");
+        try {
+            SnowflakeJdbcOperations.executeUpdate(h2, "CREATE TABLE batch_validation (a INT, b INT)");
+            assertThrows(IllegalArgumentException.class, () -> SnowflakeJdbcOperations.executeBatch(h2,
+                    "INSERT INTO batch_validation VALUES (?, ?)", List.of(new Object[] {1, 2}, new Object[] {3})));
+            assertTrue(SnowflakeJdbcOperations.executeQuery(h2,
+                    "SELECT * FROM batch_validation").isEmpty());
+        } finally {
+            SnowflakeJdbcConnectionManager.closeDataSource(h2);
+        }
+    }
+
+    @Test
+    void isolatesPoolsForDifferentJdbcUrls() {
+        SnowflakeConfiguration first = new SnowflakeConfiguration();
+        first.setJdbcUrl("jdbc:h2:mem:pool-first");
+        first.setUsername("sa");
+        SnowflakeConfiguration second = new SnowflakeConfiguration();
+        second.setJdbcUrl("jdbc:h2:mem:pool-second");
+        second.setUsername("sa");
+        try {
+            assertNotSame(SnowflakeJdbcConnectionManager.getDataSource(first),
+                    SnowflakeJdbcConnectionManager.getDataSource(second));
+        } finally {
+            SnowflakeJdbcConnectionManager.closeDataSource(first);
+            SnowflakeJdbcConnectionManager.closeDataSource(second);
+        }
+    }
+
+    @Test
+    void disablesDriverPlatformDetectionUnlessExplicitlyConfigured() {
+        SnowflakeDataSource defaultDataSource = SnowflakeDataSourceFactory.createDataSource();
+        SnowflakeDataSource overriddenDataSource = SnowflakeDataSourceFactory.createDataSource();
+
+        SnowflakeJdbcConnectionManager.disablePlatformDetectionByDefault(defaultDataSource, java.util.Map.of());
+        SnowflakeJdbcConnectionManager.disablePlatformDetectionByDefault(overriddenDataSource,
+                java.util.Map.of("disablePlatformDetection", "false"));
+
+        assertEquals("true", defaultDataSource.getProperties().getProperty("disablePlatformDetection"));
+        assertNull(overriddenDataSource.getProperties().getProperty("disablePlatformDetection"));
+    }
+
+    @Test
+    void suppliesEmptyPassphraseToDriverForEncryptedPem(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        java.nio.file.Path key = dir.resolve("encrypted.p8");
+        java.nio.file.Files.writeString(key, "-----BEGIN ENCRYPTED PRIVATE KEY-----\nplaceholder\n-----END ENCRYPTED PRIVATE KEY-----\n");
+        SnowflakeDataSource ds = SnowflakeDataSourceFactory.createDataSource();
+        ds.setPrivateKeyFile(key.toString(), null);
+        SnowflakeJdbcConnectionManager.allowEmptyPasswordForEncryptedPem(ds, key.toString(), null);
+        assertEquals("", ds.getProperties().getProperty("private_key_pwd"));
     }
 }

@@ -26,6 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.camel.Exchange;
 import org.apache.camel.support.DefaultProducer;
 import org.slf4j.Logger;
@@ -40,6 +42,7 @@ import io.dscope.camel.snowflake.sql.SqlParameterBinder;
 public class SnowflakeProducer extends DefaultProducer {
     
     private static final Logger LOG = LoggerFactory.getLogger(SnowflakeProducer.class);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     
     private final SnowflakeConfiguration configuration;
     
@@ -70,7 +73,7 @@ public class SnowflakeProducer extends DefaultProducer {
             throw new IllegalArgumentException("No SQL query provided. Set query in endpoint configuration or message body.");
         }
         
-        LOG.info("Processing Snowflake query: {}", sql);
+        LOG.debug("Processing Snowflake query for exchange {}", exchange.getExchangeId());
         
         // Bind parameters if enabled
         SqlParameterBinder.ParameterBindingResult bindingResult = null;
@@ -113,7 +116,7 @@ public class SnowflakeProducer extends DefaultProducer {
                                          SqlParameterBinder.ParameterBindingResult bindingResult, 
                                          Exchange exchange) throws Exception {
         
-        LOG.info("Executing parameterized query: {} with {} parameters", sql, bindingResult.getBoundParameterCount());
+        LOG.debug("Executing parameterized query with {} parameters", bindingResult.getBoundParameterCount());
         String trimmed = sql.stripLeading();
         String upperTrimmed = trimmed.toUpperCase();
         boolean isCall = upperTrimmed.startsWith("CALL ") || upperTrimmed.equals("CALL") || upperTrimmed.startsWith("CALL\n") || upperTrimmed.startsWith("CALL\t");
@@ -126,7 +129,6 @@ public class SnowflakeProducer extends DefaultProducer {
             Object[] paramValues = bindingResult.getParameterValues();
             for (int i = 0; i < paramValues.length; i++) {
                 statement.setObject(i + 1, paramValues[i]);
-                LOG.debug("Parameter {}: {}", i + 1, paramValues[i]);
             }
             
             // Execute query
@@ -136,26 +138,7 @@ public class SnowflakeProducer extends DefaultProducer {
                 try {
                     hasResultSet = statement.execute();
                 } catch (Exception ex) {
-                    // Fallback: some driver versions may reject prepared call with certain API; try plain Statement
-                    if (ex.getMessage() != null && ex.getMessage().contains("cannot be executed using current API")) {
-                        LOG.warn("Primary CALL execution path failed, retrying with plain Statement: {}", ex.getMessage());
-                        try (var plain = connection.createStatement()) {
-                            boolean rs = plain.execute(sql);
-                            if (rs) {
-                                try (ResultSet rsObj = plain.getResultSet()) {
-                                    List<Map<String, Object>> results = processResultSet(rsObj);
-                                    writeResults(exchange, results);
-                                }
-                            } else {
-                                int uc = plain.getUpdateCount();
-                                exchange.getIn().setBody(uc);
-                                exchange.getIn().setHeader("CamelSnowflakeUpdateCount", uc);
-                            }
-                            return; // done
-                        }
-                    } else {
-                        throw ex;
-                    }
+                    throw ex;
                 }
                 if (hasResultSet) {
                     try (ResultSet rs = statement.getResultSet()) {
@@ -184,13 +167,14 @@ public class SnowflakeProducer extends DefaultProducer {
      * Execute simple query without parameters.
      */
     private void executeSimpleQuery(Connection connection, String sql, Exchange exchange) throws Exception {
-        LOG.info("Executing simple query: {}", sql);
+        LOG.debug("Executing simple query");
         
         try (var statement = connection.createStatement()) {
             if (isSelectQuery(sql)) {
-                ResultSet resultSet = statement.executeQuery(sql);
-                List<Map<String, Object>> results = processResultSet(resultSet);
-                writeResults(exchange, results);
+                try (ResultSet resultSet = statement.executeQuery(sql)) {
+                    List<Map<String, Object>> results = processResultSet(resultSet);
+                    writeResults(exchange, results);
+                }
             } else {
                 int updateCount = statement.executeUpdate(sql);
                 exchange.getIn().setBody(updateCount);
@@ -276,14 +260,14 @@ public class SnowflakeProducer extends DefaultProducer {
         while (resultSet.next()) {
             Map<String, Object> row = new HashMap<>();
             for (int i = 1; i <= columnCount; i++) {
-                String columnName = metaData.getColumnName(i);
+                String columnName = metaData.getColumnLabel(i);
                 Object value = resultSet.getObject(i);
                 row.put(columnName, value);
             }
             results.add(row);
         }
         
-        LOG.info("Query returned {} rows", results.size());
+        LOG.debug("Query returned {} rows", results.size());
         return results;
     }
 
@@ -297,8 +281,7 @@ public class SnowflakeProducer extends DefaultProducer {
 
         if (fmt.equalsIgnoreCase("json")) {
             // Serialize to JSON
-            Object mapper = getObjectMapper();
-            String json = (String) mapper.getClass().getMethod("writeValueAsString", Object.class).invoke(mapper, results);
+            String json = OBJECT_MAPPER.writeValueAsString(results);
             exchange.getIn().setBody(json);
             exchange.getIn().setHeader(Exchange.CONTENT_TYPE, "application/json");
             return;
@@ -325,15 +308,6 @@ public class SnowflakeProducer extends DefaultProducer {
 
         // Fallback
         exchange.getIn().setBody(results);
-    }
-
-    private Object getObjectMapper() throws Exception {
-        try {
-            Class<?> clazz = Class.forName("com.fasterxml.jackson.databind.ObjectMapper");
-            return clazz.getDeclaredConstructor().newInstance();
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("JSON output requires Jackson (com.fasterxml.jackson.core:jackson-databind) on the classpath.");
-        }
     }
 
     private String escapeXml(String s) {
@@ -386,6 +360,9 @@ public class SnowflakeProducer extends DefaultProducer {
         apply.accept(SnowflakeConstants.HEADER_USERNAME, copy::setUsername);
         apply.accept(SnowflakeConstants.HEADER_PASSWORD, copy::setPassword);
         apply.accept(SnowflakeConstants.HEADER_PRIVATE_KEY, copy::setPrivateKey);
+        apply.accept(SnowflakeConstants.HEADER_PRIVATE_KEY_FILE, copy::setPrivateKeyFile);
+        apply.accept(SnowflakeConstants.HEADER_PRIVATE_KEY_FILE_PASSWORD, copy::setPrivateKeyFilePassword);
+        apply.accept(SnowflakeConstants.HEADER_OAUTH_TOKEN, copy::setToken);
         apply.accept(SnowflakeConstants.HEADER_DATABASE, copy::setDatabase);
         apply.accept(SnowflakeConstants.HEADER_SCHEMA, copy::setSchema);
         apply.accept(SnowflakeConstants.HEADER_WAREHOUSE, copy::setWarehouse);

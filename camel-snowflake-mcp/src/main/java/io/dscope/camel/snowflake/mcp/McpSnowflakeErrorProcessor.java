@@ -24,9 +24,7 @@ public class McpSnowflakeErrorProcessor implements Processor {
 
         Map<String, Object> error = new LinkedHashMap<>();
         error.put("code", determineErrorCode(throwable));
-        error.put("message", throwable != null && throwable.getMessage() != null
-                ? throwable.getMessage()
-                : defaultMessage(httpCode));
+        error.put("message", defaultMessage(httpCode));
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("status", "error");
         data.put("httpStatus", httpCode == 0 ? 500 : httpCode);

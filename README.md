@@ -1,7 +1,7 @@
 # Apache Camel Snowflake Component
 
 [![Java 21](https://img.shields.io/badge/Java-21-blue.svg)](https://openjdk.java.net/projects/jdk/21/)
-[![Apache Camel 4.15.0](https://img.shields.io/badge/Apache%20Camel-4.15.0-orange.svg)](https://camel.apache.org/)
+[![Apache Camel 4.23.0](https://img.shields.io/badge/Apache%20Camel-4.23.0-orange.svg)](https://camel.apache.org/)
 [![Maven](https://img.shields.io/badge/Maven-3.9+-brightgreen.svg)](https://maven.apache.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-yellow.svg)](https://opensource.org/licenses/Apache-2.0)
 
@@ -17,9 +17,9 @@ Production users should depend on the latest released version; local source buil
 
 | Channel | Version | Maven Coordinates | Notes |
 |---------|---------|-------------------|-------|
-| Latest Release | 1.5.0 | `io.dscope.camel:camel-snowflake:1.5.0` | Stable, recommended for production |
+| Latest Release | 1.5.0 | `io.dscope.camel:camel-snowflake:1.5.0` | Last version recorded as released |
+| Development Build | 1.6.0 | `io.dscope.camel:camel-snowflake:1.6.0` | Unreleased local build from source |
 | Previous Release | 1.4.0 | `io.dscope.camel:camel-snowflake:1.4.0` | Prior feature release |
-| Development Build | 1.5.0 | `io.dscope.camel:camel-snowflake:1.5.0` | Build from source (`mvn install`) to stay current with main |
 
 ## 🛠 Installation
 
@@ -33,13 +33,13 @@ Production users should depend on the latest released version; local source buil
 </dependency>
 ```
 
-### Maven Dependency (Snapshot / Development)
+### Maven Dependency (Development Build; not published)
 Build and install the project locally first (`mvn clean install` at the repo root):
 ```xml
 <dependency>
     <groupId>io.dscope.camel</groupId>
     <artifactId>camel-snowflake</artifactId>
-    <version>1.5.0</version>
+    <version>1.6.0</version>
 </dependency>
 ```
 
@@ -57,7 +57,7 @@ Build and install the project locally first (`mvn clean install` at the repo roo
 ## 📋 Requirements
 
 - Java 21 LTS or higher
-- Apache Camel 4.15.0+
+- Apache Camel 4.23.0+
 - Maven 3.9.1+
 - Snowflake account (for production use)
 
@@ -68,20 +68,20 @@ Current tested versions in this repository:
 | Component            | Version        |
 |----------------------|----------------|
 | Java                 | 21             |
-| Apache Camel         | 4.15.0         |
-| Snowflake JDBC       | 3.26.1         |
-| HikariCP             | 5.1.0          |
-| Jackson              | 2.17.2         |
+| Apache Camel         | 4.23.0         |
+| Snowflake JDBC       | 4.3.4         |
+| HikariCP             | 7.1.0          |
+| Jackson              | 2.22.3         |
 | SLF4J                | 2.0.x          |
-| Spring Boot (sample) | 3.5.x          |
+| Spring Boot (sample) | 4.0.9          |
 
 ## ✅ Compatibility
 
 - Java 21+
-- Apache Camel 4.15.x (component built and tested with 4.15.0; compatible with Camel 4.x)
-- Snowflake JDBC 3.26.x
+- Apache Camel 4.23.x (aligned with the current sibling Camel modules)
+- Snowflake JDBC 4.3.x
 - OSGi: packaged as a bundle (Felix Maven Bundle Plugin)
-- Spring Boot: sample app on Spring Boot 3.5.x using Camel Spring Boot
+- Spring Boot: sample app on Spring Boot 4.0.9 using Camel Spring Boot
 
 ## 🛠 Installation
 
@@ -91,7 +91,7 @@ Current tested versions in this repository:
 <dependency>
     <groupId>io.dscope.camel</groupId>
     <artifactId>camel-snowflake</artifactId>
-    <version>1.5.0</version>
+    <version>1.6.0</version>
 </dependency>
 ```
 
@@ -298,12 +298,12 @@ Snowflake-specific MCP support now lives in the separate `io.dscope.camel:camel-
 <dependency>
     <groupId>io.dscope.camel</groupId>
     <artifactId>camel-snowflake-mcp</artifactId>
-    <version>1.5.0</version>
+    <version>1.6.0</version>
 </dependency>
 <dependency>
     <groupId>io.dscope.camel</groupId>
     <artifactId>camel-mcp</artifactId>
-    <version>1.4.1</version>
+    <version>1.5.0</version>
 </dependency>
 ```
 
@@ -381,7 +381,7 @@ The remaining MCP processors (JSON-RPC envelope parsing, rate limiting, streamin
          -Dsnowflake.warehouse=$SNOWFLAKE_WAREHOUSE \
          -Dsnowflake.role=$SNOWFLAKE_ROLE \
          -Dorg.slf4j.simpleLogger.defaultLogLevel=debug \
-    -jar samples/mcp-snowflake-yaml/target/mcp-snowflake-yaml-1.5.0-shaded.jar
+    -jar samples/mcp-snowflake-yaml/target/mcp-snowflake-yaml-1.6.0-shaded.jar
      ```
 5. Issue MCP-compliant JSON-RPC requests (aliases in `samples/mcp-snowflake-yaml/shell-aliases.zsh`):
      ```bash
@@ -508,6 +508,8 @@ java \
 ```
 
 Additional Snowflake JDBC parameters can be provided as either endpoint `jdbc.*` parameters or as system properties using the `snowflake.jdbc.` prefix. They’ll be URL-encoded and appended to the JDBC URL:
+
+Camel Snowflake disables JDBC 4.x cloud platform detection by default. This prevents key-pair logins from probing AWS, Azure, and GCP metadata endpoints before connecting. To re-enable the driver behavior, pass `jdbc.disablePlatformDetection=false` or `-Dsnowflake.jdbc.disablePlatformDetection=false`.
 
 ```bash
 # Keep the session alive and set a client timeout

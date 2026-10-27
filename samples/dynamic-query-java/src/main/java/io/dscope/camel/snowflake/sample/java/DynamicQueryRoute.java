@@ -46,10 +46,10 @@ public class DynamicQueryRoute extends RouteBuilder {
         from("direct:snowflakeQuery")
             .routeId("snowflake-dynamic-query-java")
             // Choose SQL from header 'sql' or default property
-            .setHeader("CamelSnowflakeQuery").simple("${header.sql:-" + defaultQuery + "}")
+            .setHeader("CamelSnowflakeQuery").header("sql")
             // Named parameters from headers with prefix 'snowflake.' by default
-            .setHeader("snowflake.user_id").simple("${header.user_id:-{{snowflake.param.user_id:0}}}")
-            .setHeader("snowflake.min_date").simple("${header.min_date:-{{snowflake.param.min_date:1970-01-01}}}")
+            .setHeader("snowflake.user_id").header("user_id")
+            .setHeader("snowflake.min_date").header("min_date")
             // Execute query
             .to(snowflakeUri)
             // Log results

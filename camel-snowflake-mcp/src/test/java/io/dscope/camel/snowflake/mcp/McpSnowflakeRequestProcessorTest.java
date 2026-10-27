@@ -17,6 +17,23 @@ import static org.junit.jupiter.api.Assertions.*;
 class McpSnowflakeRequestProcessorTest {
 
     @Test
+    void testConnectionOverridesAreDisabledByDefault() throws Exception {
+        McpMethodDefinition def = new McpMethodDefinition();
+        def.setName("selectSample");
+        McpSnowflakeRequestProcessor processor = new McpSnowflakeRequestProcessor(
+                new McpMethodCatalog(java.util.List.of(def)));
+        processor.setQueries(Map.of("selectSample", "SELECT 1"));
+        try (DefaultCamelContext ctx = new DefaultCamelContext()) {
+            Exchange exchange = new DefaultExchange(ctx);
+            exchange.setProperty(McpJsonRpcEnvelopeProcessor.EXCHANGE_PROPERTY_TOOL_NAME, "selectSample");
+            exchange.getIn().setBody(Map.of("connection", Map.of("role", "ACCOUNTADMIN")));
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                    () -> processor.process(exchange));
+            assertEquals("Connection overrides are disabled for this MCP service", exception.getMessage());
+        }
+    }
+
+    @Test
     void testConnectionOverridesAndMasking() throws Exception {
         McpMethodDefinition def = new McpMethodDefinition();
         def.setName("selectSample");
@@ -24,6 +41,7 @@ class McpSnowflakeRequestProcessorTest {
 
         McpMethodCatalog catalog = new McpMethodCatalog(java.util.List.of(def));
         McpSnowflakeRequestProcessor processor = new McpSnowflakeRequestProcessor(catalog);
+        processor.setAllowConnectionOverrides(true);
         processor.setQueries(java.util.Map.of("selectSample", "SELECT 1"));
 
         try (DefaultCamelContext ctx = new DefaultCamelContext()) {
@@ -80,6 +98,7 @@ class McpSnowflakeRequestProcessorTest {
     def.setRequiredArguments(java.util.List.of());
         McpMethodCatalog catalog = new McpMethodCatalog(java.util.List.of(def));
         McpSnowflakeRequestProcessor processor = new McpSnowflakeRequestProcessor(catalog);
+        processor.setAllowConnectionOverrides(true);
         processor.setQueries(java.util.Map.of("selectSample", "SELECT 1"));
         try (DefaultCamelContext ctx = new DefaultCamelContext()) {
             Exchange exchange = new DefaultExchange(ctx);
@@ -109,6 +128,7 @@ class McpSnowflakeRequestProcessorTest {
     def.setRequiredArguments(java.util.List.of());
         McpMethodCatalog catalog = new McpMethodCatalog(java.util.List.of(def));
         McpSnowflakeRequestProcessor processor = new McpSnowflakeRequestProcessor(catalog);
+        processor.setAllowConnectionOverrides(true);
         processor.setQueries(java.util.Map.of("selectSample", "SELECT 1"));
         try (DefaultCamelContext ctx = new DefaultCamelContext()) {
             Exchange exchange = new DefaultExchange(ctx);
@@ -135,6 +155,7 @@ class McpSnowflakeRequestProcessorTest {
     def.setRequiredArguments(java.util.List.of());
         McpMethodCatalog catalog = new McpMethodCatalog(java.util.List.of(def));
         McpSnowflakeRequestProcessor processor = new McpSnowflakeRequestProcessor(catalog);
+        processor.setAllowConnectionOverrides(true);
         processor.setQueries(java.util.Map.of("selectSample", "SELECT 1"));
         try (DefaultCamelContext ctx = new DefaultCamelContext()) {
             Exchange exchange = new DefaultExchange(ctx);
@@ -161,6 +182,7 @@ class McpSnowflakeRequestProcessorTest {
     def.setRequiredArguments(java.util.List.of());
         McpMethodCatalog catalog = new McpMethodCatalog(java.util.List.of(def));
         McpSnowflakeRequestProcessor processor = new McpSnowflakeRequestProcessor(catalog);
+        processor.setAllowConnectionOverrides(true);
         processor.setQueries(java.util.Map.of("selectSample", "SELECT 1"));
 
         try (DefaultCamelContext ctx = new DefaultCamelContext()) {

@@ -21,15 +21,15 @@
         # 1) Choose the SQL to execute: prefer header 'sql', else default property 'snowflake.query'
         - setHeader:
             name: CamelSnowflakeQuery
-            simple: "${header.sql:-{{snowflake.query}}}"
+            simple: "${header.sql}"
 
         # 2) Provide named parameters for binding (prefix 'snowflake.' by default)
         - setHeader:
             name: snowflake.user_id
-            simple: "${header.user_id:-{{snowflake.param.user_id:0}}}"
+            simple: "${header.user_id}"
         - setHeader:
             name: snowflake.min_date
-            simple: "${header.min_date:-{{snowflake.param.min_date:1970-01-01}}}"
+            simple: "${header.min_date}"
 
         # 3) Execute on the Snowflake endpoint. Connection values are pulled from properties.
         - to:

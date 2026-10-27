@@ -18,6 +18,8 @@
 package io.dscope.camel.snowflake.sql;
 
 import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.camel.Exchange;
@@ -43,18 +45,72 @@ public class SqlParameterBinder {
      */
     public static ParameterBindingResult bindParameters(String sql, Exchange exchange, String parameterPrefix) {
         if (sql == null || sql.trim().isEmpty()) {
-            return new ParameterBindingResult(sql == null ? "" : sql, new LinkedHashMap<>(), new LinkedHashMap<>());
+            return new ParameterBindingResult(sql == null ? "" : sql, new LinkedHashMap<>(), new LinkedHashMap<>(), List.of());
         }
 
         // Use insertion-ordered maps to preserve parameter order for PreparedStatement binding
         Map<String, Object> boundParameters = new LinkedHashMap<>();
         Map<String, Object> unboundParameters = new LinkedHashMap<>();
+        List<Object> parameterValues = new ArrayList<>();
 
         StringBuilder out = new StringBuilder(sql.length());
         boolean inString = false;
+        boolean inDoubleQuotedIdentifier = false;
+        boolean inLineComment = false;
+        boolean inBlockComment = false;
+        String dollarQuote = null;
         int i = 0;
         while (i < sql.length()) {
             char c = sql.charAt(i);
+
+            if (dollarQuote != null) {
+                if (sql.startsWith(dollarQuote, i)) {
+                    out.append(dollarQuote);
+                    i += dollarQuote.length();
+                    dollarQuote = null;
+                } else {
+                    out.append(c);
+                    i++;
+                }
+                continue;
+            }
+            if (inLineComment) {
+                out.append(c);
+                if (c == '\n' || c == '\r') inLineComment = false;
+                i++;
+                continue;
+            }
+            if (inBlockComment) {
+                out.append(c);
+                if (c == '*' && i + 1 < sql.length() && sql.charAt(i + 1) == '/') {
+                    out.append('/');
+                    i += 2;
+                    inBlockComment = false;
+                } else i++;
+                continue;
+            }
+            if (!inString && !inDoubleQuotedIdentifier && c == '-' && i + 1 < sql.length() && sql.charAt(i + 1) == '-') {
+                out.append("--"); i += 2; inLineComment = true; continue;
+            }
+            if (!inString && !inDoubleQuotedIdentifier && c == '/' && i + 1 < sql.length() && sql.charAt(i + 1) == '*') {
+                out.append("/*"); i += 2; inBlockComment = true; continue;
+            }
+            if (!inString && !inDoubleQuotedIdentifier && c == '$') {
+                int end = sql.indexOf('$', i + 1);
+                if (end >= 0 && sql.substring(i + 1, end).matches("[A-Za-z0-9_]*")) {
+                    dollarQuote = sql.substring(i, end + 1);
+                    out.append(dollarQuote);
+                    i = end + 1;
+                    continue;
+                }
+            }
+            if (!inString && c == '"') {
+                out.append(c);
+                if (inDoubleQuotedIdentifier && i + 1 < sql.length() && sql.charAt(i + 1) == '"') {
+                    out.append(c); i += 2;
+                } else { inDoubleQuotedIdentifier = !inDoubleQuotedIdentifier; i++; }
+                continue;
+            }
 
             if (c == '\'') {
                 // Handle single-quoted literals and escaped quotes inside them ('' -> ')
@@ -74,7 +130,7 @@ public class SqlParameterBinder {
                 continue;
             }
 
-            if (!inString && c == ':' && (i + 1) < sql.length() && sql.charAt(i + 1) == '#') {
+            if (!inString && !inDoubleQuotedIdentifier && c == ':' && (i + 1) < sql.length() && sql.charAt(i + 1) == '#') {
                 // Potential parameter placeholder outside string literal
                 int start = i;
                 i += 2; // skip :#
@@ -94,7 +150,8 @@ public class SqlParameterBinder {
                     if (paramValue != null) {
                         out.append('?');
                         boundParameters.put(paramName, paramValue);
-                        LOG.debug("Bound parameter '{}' with value: {}", paramName, paramValue);
+                        parameterValues.add(paramValue);
+                        LOG.debug("Bound parameter '{}'", paramName);
                     } else {
                         // No value found, keep original token
                         out.append(sql, start, i);
@@ -114,10 +171,10 @@ public class SqlParameterBinder {
         }
 
         String finalSql = out.toString();
-        LOG.info("SQL parameter binding completed. Original: '{}', Processed: '{}', Bound: {}, Unbound: {}",
-                sql, finalSql, boundParameters.keySet(), unboundParameters.keySet());
+        LOG.debug("SQL parameter binding completed. Bound names: {}, unbound names: {}",
+                boundParameters.keySet(), unboundParameters.keySet());
 
-        return new ParameterBindingResult(finalSql, boundParameters, unboundParameters);
+        return new ParameterBindingResult(finalSql, boundParameters, unboundParameters, parameterValues);
     }
 
     /**
@@ -192,11 +249,14 @@ public class SqlParameterBinder {
         private final String processedSql;
         private final Map<String, Object> boundParameters;
         private final Map<String, Object> unboundParameters;
+        private final List<Object> parameterValues;
 
-        public ParameterBindingResult(String processedSql, Map<String, Object> boundParameters, Map<String, Object> unboundParameters) {
+        public ParameterBindingResult(String processedSql, Map<String, Object> boundParameters,
+                                      Map<String, Object> unboundParameters, List<Object> parameterValues) {
             this.processedSql = processedSql;
             this.boundParameters = boundParameters;
             this.unboundParameters = unboundParameters;
+            this.parameterValues = List.copyOf(parameterValues);
         }
 
         public String getProcessedSql() {
@@ -216,14 +276,14 @@ public class SqlParameterBinder {
         }
 
         public int getBoundParameterCount() {
-            return boundParameters.size();
+            return parameterValues.size();
         }
 
         /**
          * Get parameter values in order for PreparedStatement binding.
          */
         public Object[] getParameterValues() {
-            return boundParameters.values().toArray();
+            return parameterValues.toArray();
         }
     }
 }

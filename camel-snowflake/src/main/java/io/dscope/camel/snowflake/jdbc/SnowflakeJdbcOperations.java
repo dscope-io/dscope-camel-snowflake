@@ -94,12 +94,21 @@ public class SnowflakeJdbcOperations {
      * Execute a batch of INSERT, UPDATE, or DELETE statements.
      */
     public static int[] executeBatch(SnowflakeConfiguration config, String sql, List<Object[]> batchParameters) throws SQLException {
+        if (batchParameters == null || batchParameters.isEmpty()) {
+            return new int[0];
+        }
         LOG.debug("Executing batch with {} statements: {}", batchParameters.size(), sql);
         
         try (Connection connection = SnowflakeJdbcConnectionManager.getConnection(config);
              PreparedStatement statement = connection.prepareStatement(sql)) {
             
+            int expectedParameterCount = statement.getParameterMetaData().getParameterCount();
             for (Object[] parameters : batchParameters) {
+                if (parameters == null || parameters.length != expectedParameterCount) {
+                    throw new IllegalArgumentException("Each batch row must contain exactly "
+                            + expectedParameterCount + " parameter values");
+                }
+                statement.clearParameters();
                 setParameters(statement, parameters);
                 statement.addBatch();
             }

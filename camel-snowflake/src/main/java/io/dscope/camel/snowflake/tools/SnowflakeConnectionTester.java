@@ -43,7 +43,7 @@ import io.github.cdimascio.dotenv.Dotenv;
  *   # export SNOWFLAKE_SCHEMA=PUBLIC
  *   # export SNOWFLAKE_ROLE=SYSADMIN
  *   # export SNOWFLAKE_AUTHENTICATOR=snowflake_jwt | externalbrowser | oauth | snowflake
- *   java -cp target/camel-snowflake-1.5.0-standalone.jar io.dscope.camel.snowflake.tools.SnowflakeConnectionTester
+ *   java -cp target/camel-snowflake-1.6.0-standalone.jar io.dscope.camel.snowflake.tools.SnowflakeConnectionTester
  *
  * CLI arguments override environment variables:
  *   --account=acct --user=user [--password=pw | --pkcs8-file=key.der | --pkcs8-base64=BASE64]
